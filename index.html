@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>AMHEC KPI Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: top bar with role-based tabs; each view = week ribbon or filter row, then working tables. Left-aligned throughout. */
+:root{
+  --page:#eef2f0; --surface:#ffffff; --sunk:#e3e9e6; --line:#cfd8d4;
+  --ink:#14241f; --muted:#56665f; --brand:#12352e; --brand-ink:#ffffff; --amber:#e3a21a;
+  --good:#1d7f47; --good-bg:#e1f2e7; --ok:#1f5e52; --ok-bg:#dcebe6; --warn:#a8690f; --warn-bg:#fbefd6; --bad:#b9400f; --bad-bg:#fbe4d9;
+  --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:8px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --page:#0e1715; --surface:#15211e; --sunk:#1b2a26; --line:#2a3b36;
+  --ink:#e3ebe8; --muted:#97a9a2; --brand:#79c8b3; --brand-ink:#08130f; --amber:#f0b638;
+  --good:#63cf8e; --good-bg:#163527; --ok:#7fc7b6; --ok-bg:#183330; --warn:#e9b250; --warn-bg:#3a2d13; --bad:#f18a5e; --bad-bg:#3c2116; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--page);color:var(--ink);font:400 15px/1.5 var(--body);padding-bottom:env(safe-area-inset-bottom,0)}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px}
+header.top{background:var(--brand);color:var(--brand-ink);position:sticky;top:0;z-index:10;padding-top:env(safe-area-inset-top,0)}
+header.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;padding-block:10px 0}
+.brand{font:700 22px/1 var(--display);letter-spacing:.01em;white-space:nowrap}
+.brand small{font:500 14px var(--body);opacity:.75;margin-left:8px}
+.me{margin-left:auto;font-size:13px;opacity:.85;display:flex;gap:10px;align-items:center}
+.me button{background:transparent;border:1px solid currentColor;color:inherit;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:13px}
+nav.tabs{flex-basis:100%;display:flex;gap:2px;overflow-x:auto}
+nav.tabs a{color:inherit;opacity:.72;text-decoration:none;font:600 16px/1 var(--display);padding:12px 14px 11px;border-bottom:4px solid transparent;white-space:nowrap}
+nav.tabs a.on{opacity:1;border-bottom-color:var(--amber)}
+nav.tabs a .count{display:inline-block;min-width:20px;padding:2px 6px;margin-left:6px;border-radius:10px;background:var(--amber);color:#1b1404;font:600 12px/1.2 var(--body);text-align:center}
+main{padding-block:20px 60px}
+h1{font:700 30px/1.1 var(--display);margin:0 0 4px;text-wrap:balance}
+h2{font:700 21px/1.2 var(--display);margin:0 0 10px}
+.lead{color:var(--muted);margin:0 0 18px;max-width:68ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.stack{display:grid;gap:16px}
+.cols{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px}
+@media (max-width:880px){.cols{grid-template-columns:minmax(0,1fr)}}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+label.f{display:grid;gap:4px;font-size:13px;color:var(--muted);font-weight:500}
+input[type=text],input[type=email],input[type=number],input[type=date],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-width:0;width:100%}
+textarea{min-height:70px;resize:vertical}
+input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+.btn{border:1px solid var(--brand);background:var(--brand);color:var(--brand-ink);border-radius:6px;padding:10px 16px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn.line{background:transparent;color:var(--brand)}
+.btn.warn{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn[disabled]{opacity:.45;cursor:default}
+a.link,button.link{color:var(--brand);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-weight:500}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th{font-weight:600;font-size:13px;color:var(--muted);text-align:left;padding:8px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.n,th.n{text-align:right}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--sunk)}
+.pill{display:inline-block;padding:3px 9px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap}
+.s-draft{background:var(--sunk);color:var(--muted)} .s-submitted{background:var(--warn-bg);color:var(--warn)}
+.s-approved{background:var(--good-bg);color:var(--good)} .s-returned{background:var(--bad-bg);color:var(--bad)}
+.r-ex{background:var(--good-bg);color:var(--good)} .r-gd{background:var(--ok-bg);color:var(--ok)} .r-ni{background:var(--warn-bg);color:var(--warn)} .r-po{background:var(--bad-bg);color:var(--bad)} .r-na{background:var(--sunk);color:var(--muted)}
+.meter{display:flex;align-items:center;gap:8px;min-width:130px}
+.meter i{flex:1;height:8px;border-radius:4px;background:var(--sunk);position:relative;overflow:hidden}
+.meter i b{position:absolute;inset:0 auto 0 0;border-radius:4px}
+.meter span{width:44px;text-align:right;font-size:13px;font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:grid;gap:2px}
+.tile .k{font-size:13px;color:var(--muted)} .tile .v{font:700 34px/1.05 var(--display);font-variant-numeric:tabular-nums} .tile .s{font-size:13px;color:var(--muted)}
+/* week ribbon: the one bold element */
+.ribbon{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-left:6px solid var(--amber);border-radius:var(--r);padding:12px 14px;margin-bottom:16px}
+.ribbon .wk{font:700 26px/1.05 var(--display)}
+.ribbon .days{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.ribbon .days span{font-size:12px;padding:2px 7px;border-radius:4px;background:var(--sunk);color:var(--muted)}
+.ribbon .days span.today{background:var(--amber);color:#1b1404;font-weight:600}
+.navbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:20px;line-height:1}
+.navbtn[disabled]{opacity:.35;cursor:default}
+.note{padding:10px 12px;border-radius:6px;background:var(--sunk);font-size:14px}
+.note.bad{background:var(--bad-bg);color:var(--bad)} .note.good{background:var(--good-bg);color:var(--good)} .note.warn{background:var(--warn-bg);color:var(--warn)}
+.empty{padding:28px 18px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--r)}
+.empty b{display:block;color:var(--ink);font:600 18px/1.3 var(--display);margin-bottom:4px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--page);padding:10px 16px;border-radius:8px;z-index:50;max-width:calc(100% - 32px);font-size:14px}
+.login{max-width:420px;margin:8vh auto 0;display:grid;gap:14px}
+.login .panel{padding:24px;display:grid;gap:14px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.kpiname{font-weight:500} .sub{font-size:12.5px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:rgba(10,20,17,.55);z-index:40;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow:auto}
+.modal .panel{width:100%;max-width:880px}
+.chart svg{display:block;width:100%;height:auto}
+.chart text{fill:var(--muted);font:500 11px var(--body)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:5px 10px;border:1px solid var(--line);border-radius:14px;font-size:13px;background:var(--surface);cursor:pointer}
+.chip.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="root"><div class="login"><div class="panel"><h1>AMHEC KPI Portal</h1><p class="muted">Loading…</p></div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(() => {
+const SB_URL = "https://becaxtyjopzygwvejjbj.supabase.co";
+const SB_KEY = "sb_publishable_et4LCWFN4wdCriyyQIEW5A_Slg9GWmT";
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const DAYS = 5; // working days per week, Sun–Thu
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const S = { me:null, tab:'my', week:null, team:[], data:{}, pendingCount:0, loginEmail:'' };
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => (v===null||v===undefined||v==='') ? '' : (Math.round(Number(v)*10)/10).toLocaleString();
+function toast(t){ const d=document.createElement('div'); d.className='toast'; d.textContent=t; document.body.appendChild(d); setTimeout(()=>d.remove(),3200); }
+function err(e){ toast((e && (e.message||e.error_description)) || 'Something went wrong. Check your connection and try again.'); console.error(e); }
+
+// ---------- dates (week = Sunday start) ----------
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = k => { const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d); };
+const addD = (d,n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+const sunday = d => addD(new Date(d.getFullYear(),d.getMonth(),d.getDate()), -d.getDay());
+const thisWeek = () => ymd(sunday(new Date()));
+const wkLabel = k => { const s=parse(k), e=addD(s,4); return `${s.getDate()} ${MON[s.getMonth()]} – ${e.getDate()} ${MON[e.getMonth()]} ${e.getFullYear()}`; };
+const shortD = k => { const d=parse(k); return `${d.getDate()} ${MON[d.getMonth()]}`; };
+function sundaysBetween(a,b){ const end = b > new Date() ? new Date() : b; let s=sunday(a); if(s<a) s=addD(s,7); let n=0; while(s<=end){ n++; s=addD(s,7);} return n; }
+
+// ---------- scoring ----------
+function ach(dir,t,a){ a=Number(a)||0; t=Number(t)||0;
+  if(dir==='lower'){ if(t===0) return Math.max(0,1-0.25*a); return a<=t?1:t/a; }
+  return t===0?1:Math.min(1.2,a/t); }
+function rating(s){ if(s==null||isNaN(s)) return ['No data','r-na']; if(s>=.9) return ['Excellent','r-ex']; if(s>=.75) return ['Good','r-gd']; if(s>=.6) return ['Needs improvement','r-ni']; return ['Poor','r-po']; }
+const col = s => s==null?'var(--line)': s>=.9?'var(--good)': s>=.75?'var(--ok)': s>=.6?'var(--warn)':'var(--bad)';
+const pct = s => s==null||isNaN(s) ? '–' : Math.round(s*100)+'%';
+const meter = s => `<div class="meter"><i><b style="width:${Math.min(100,(s||0)/1.2*100)}%;background:${col(s)}"></b></i><span>${pct(s)}</span></div>`;
+const rpill = s => { const [t,c]=rating(s); return `<span class="pill ${c}">${t}</span>`; };
+const spill = st => `<span class="pill s-${esc(st)}">${({draft:'Not submitted',submitted:'Waiting approval',approved:'Approved',returned:'Returned'})[st]||esc(st)}</span>`;
+
+async function fetchAll(make){ let out=[], from=0; for(;;){ const {data,error}=await make().range(from,from+999); if(error) throw error; out=out.concat(data); if(data.length<1000) break; from+=1000; } return out; }
+
+// ---------- auth ----------
+function viewLogin(){
+  $('#root').innerHTML = `<div class="login wrap">
+   <div class="panel">
+    <div><h1>AMHEC KPI Portal</h1><p class="muted" style="margin:0">QHSE weekly KPIs, approvals and performance.</p></div>
+    <form id="loginF" class="stack">
+      <label class="f" for="email">Work email<input id="email" type="email" autocomplete="username" required value="${esc(S.loginEmail)}"></label>
+      <label class="f" for="pw">Password<input id="pw" type="password" autocomplete="current-password" required></label>
+      <button class="btn" type="submit">Sign in</button>
+    </form>
+    <p class="small muted" style="margin:0">Forgot your password or new here? Ask the QHSE department to set one for you.</p>
+   </div></div>`;
+  $('#loginF').addEventListener('submit', async e => {
+    e.preventDefault(); const email=$('#email').value.trim().toLowerCase(); S.loginEmail=email;
+    const b=e.submitter; b.disabled=true;
+    const {error}=await sb.auth.signInWithPassword({email, password:$('#pw').value});
+    if(error){ toast(error.message==='Invalid login credentials'?'Email or password is wrong. Check both and try again.':error.message); b.disabled=false; }
+  });
+}
+
+async function startApp(session){
+  const email = session.user.email.toLowerCase();
+  const {data:me,error} = await sb.from('profiles').select('*').eq('email',email).maybeSingle();
+  if(error){ err(error); return; }
+  if(!me || !me.active){ $('#root').innerHTML=`<div class="login wrap"><div class="panel"><h1>Not registered</h1><p>${esc(email)} is not in the portal yet. Ask the QHSE department to add you.</p><button class="btn line" id="so">Sign out</button></div></div>`; $('#so').onclick=()=>sb.auth.signOut(); return; }
+  S.me=me; S.week=thisWeek();
+  const {data:team} = await sb.from('profiles').select('*').eq('active',true).order('full_name');
+  S.team = (team||[]).filter(p=>p.id!==me.id);
+  shell(); route();
+}
+const isMgr = () => S.me && (S.me.role==='supervisor'||S.me.role==='admin');
+const isAdmin = () => S.me && S.me.role==='admin';
+
+function shell(){
+  const tabs=[['my','My KPIs']];
+  if(isMgr()) tabs.push(['approvals','Approvals'],['dashboard','Dashboard'],['plan','Weekly plan']);
+  if(isAdmin()) tabs.push(['setup','Setup']);
+  $('#root').innerHTML = `<header class="top"><div class="wrap">
+    <div class="brand">AMHEC KPI Portal<small>QHSE</small></div>
+    <div class="me"><span>${esc(S.me.full_name)} · ${esc(S.me.role)}</span><button id="chpw" type="button">Change password</button><button id="out" type="button">Sign out</button></div>
+    <nav class="tabs">${tabs.map(([k,t])=>`<a href="#${k}" data-t="${k}">${t}${k==='approvals'?'<span class="count" id="pc" hidden></span>':''}</a>`).join('')}</nav>
+  </div></header><main class="wrap" id="main"></main>`;
+  $('#out').onclick=()=>sb.auth.signOut();
+  $('#chpw').onclick=changePassword;
+  if(isMgr()) refreshPending();
+}
+function changePassword(){
+  const md=document.createElement('div'); md.className='modal'; md.innerHTML=`<form class="panel stack" id="cpF" style="max-width:420px" aria-label="Change password">
+    <h2 style="margin:0">Change password</h2>
+    <label class="f" for="np1">New password (at least 8 characters)<input id="np1" type="password" autocomplete="new-password" minlength="8" required></label>
+    <label class="f" for="np2">Type it again<input id="np2" type="password" autocomplete="new-password" minlength="8" required></label>
+    <div class="row"><button class="btn" type="submit">Save password</button><button class="btn line" type="button" id="cpX">Cancel</button></div></form>`;
+  document.body.appendChild(md); $('#cpX').onclick=()=>md.remove();
+  $('#cpF').onsubmit=async e=>{ e.preventDefault(); if($('#np1').value!==$('#np2').value) return toast('The two passwords do not match.');
+    const {error}=await sb.auth.updateUser({password:$('#np1').value}); if(error) return err(error); toast('Password changed.'); md.remove(); };
+}
+async function refreshPending(){
+  const {count}=await sb.from('week_submissions').select('id',{count:'exact',head:true}).eq('status','submitted').neq('officer_id',S.me.id);
+  const el=$('#pc'); if(el){ el.hidden=!count; el.textContent=count||''; }
+}
+function route(){
+  let t=(location.hash||'#my').slice(1).split('/')[0];
+  const allowed=['my']; if(isMgr()) allowed.push('approvals','dashboard','plan'); if(isAdmin()) allowed.push('setup');
+  if(!allowed.includes(t)) t='my';
+  S.tab=t; document.querySelectorAll('nav.tabs a').forEach(a=>a.classList.toggle('on',a.dataset.t===t));
+  ({my:viewMy, approvals:viewApprovals, dashboard:viewDashboard, plan:viewPlan, setup:viewSetup})[t]();
+}
+window.addEventListener('hashchange',()=>{ if(S.me) route(); });
+
+// ---------- shared: week ribbon ----------
+function ribbon(week, id){
+  const s=parse(week), today=ymd(new Date());
+  const days=['Sun','Mon','Tue','Wed','Thu'].map((d,i)=>{const k=ymd(addD(s,i)); return `<span class="${k===today?'today':''}">${d} ${addD(s,i).getDate()}</span>`;}).join('');
+  return `<div class="ribbon"><button class="navbtn" id="${id}Prev" aria-label="Previous week">‹</button>
+    <div><div class="wk">Week of ${esc(wkLabel(week))}</div><div class="days">${days}</div></div>
+    <button class="navbtn" id="${id}Next" aria-label="Next week" ${week>=thisWeek()?'disabled':''}>›</button></div>`;
+}
+function bindRibbon(id, getW, setW, after){
+  $(`#${id}Prev`).onclick=()=>{ setW(ymd(addD(parse(getW()),-7))); after(); };
+  $(`#${id}Next`).onclick=()=>{ setW(ymd(addD(parse(getW()),7))); after(); };
+}
+
+// ---------- My KPIs ----------
+async function viewMy(){
+  const m=$('#main'); m.innerHTML=`<h1>My KPIs</h1><p class="lead">Enter what you achieved this week, then submit it for approval. Weeks run Sunday to Thursday.</p>${ribbon(S.week,'my')}<div id="myBody" class="empty">Loading your KPIs…</div>`;
+  bindRibbon('my',()=>S.week,w=>S.week=w,viewMy);
+  try{
+    const {error:e0}=await sb.rpc('ensure_week_plan',{p_officer:S.me.id,p_week:S.week}); if(e0) throw e0;
+    const [{data:rows,error:e1},{data:sub,error:e2},{data:hist,error:e3}] = await Promise.all([
+      sb.from('week_kpis').select('*').eq('officer_id',S.me.id).eq('week_start',S.week).order('kpi_name'),
+      sb.from('week_submissions').select('*').eq('officer_id',S.me.id).eq('week_start',S.week).maybeSingle(),
+      sb.from('week_submissions').select('*').eq('officer_id',S.me.id).neq('status','draft').order('week_start',{ascending:false}).limit(12)]);
+    if(e1||e2||e3) throw (e1||e2||e3);
+    const st=sub?.status||'draft', locked = st==='submitted'||st==='approved';
+    const body=$('#myBody'); body.className='';
+    if(!rows.length){ body.className='empty'; body.innerHTML=`<b>No KPIs assigned for this week</b>Your supervisor or QHSE assigns KPIs. Ask them if you expected some.`; return; }
+    body.innerHTML = `<div class="cols"><div class="stack">
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">This week's KPIs</h2>${spill(st)}</div>
+        ${st==='returned'?`<div class="note bad" style="margin-bottom:10px"><b>Returned by ${esc(sub.reviewed_by||'supervisor')}:</b> ${esc(sub.supervisor_remarks)}</div>`:''}
+        ${st==='approved'?`<div class="note good" style="margin-bottom:10px">Approved by ${esc(sub.reviewed_by)}${sub.supervisor_remarks?': '+esc(sub.supervisor_remarks):''}</div>`:''}
+        <form id="myF"><div class="scroll"><table>
+          <thead><tr><th>KPI</th><th class="n">Weekly target</th><th class="n">Achieved</th><th class="n">Per day</th></tr></thead>
+          <tbody>${rows.map(r=>`<tr><td><div class="kpiname">${esc(r.kpi_name)}</div><div class="sub">${r.direction==='lower'?'Lower is better':esc(r.unit||'')}</div></td>
+            <td class="n">${num(r.target)}</td>
+            <td class="n"><input type="number" min="0" step="any" id="a_${r.id}" data-id="${r.id}" value="${r.actual??''}" placeholder="0" style="width:96px" ${locked?'disabled':''} aria-label="${esc(r.kpi_name)} achieved"></td>
+            <td class="n">${r.actual==null?'–':num(r.actual/DAYS)}</td></tr>`).join('')}</tbody></table></div>
+          <label class="f" for="rem" style="margin-top:12px">Remarks for your supervisor<textarea id="rem" ${locked?'disabled':''} placeholder="Highlights, problems, support needed">${esc(sub?.officer_remarks||'')}</textarea></label>
+          <div class="row" style="margin-top:12px">${locked?`<span class="muted small">This week is ${st==='approved'?'approved':'waiting for approval'} and can no longer be changed.</span>`:
+            `<button class="btn" type="submit" data-submit="1">Submit for approval</button><button class="btn line" type="submit" data-submit="0">Save draft</button>`}</div>
+        </form></div></div>
+      <div class="stack"><div class="panel"><h2>This week's score</h2>
+        <div class="tile" style="border:0;padding:0"><span class="v" style="color:${col(sub?.score)}">${pct(sub?.score)}</span><span class="s">${rpill(sub?.score)}</span></div></div>
+        <div class="panel"><h2>My recent weeks</h2>${hist.length?`<table><tbody>${hist.map(h=>`<tr class="click" data-w="${h.week_start}"><td>${esc(wkLabel(h.week_start))}</td><td>${spill(h.status)}</td><td class="n"><b>${pct(h.score)}</b></td></tr>`).join('')}</tbody></table>`:'<p class="muted small">Submitted weeks appear here.</p>'}</div>
+      </div></div>`;
+    document.querySelectorAll('tr[data-w]').forEach(tr=>tr.onclick=()=>{S.week=tr.dataset.w; viewMy();});
+    $('#myF')?.addEventListener('submit', async e=>{
+      e.preventDefault(); const submit = e.submitter?.dataset.submit==='1';
+      const vals={}; rows.forEach(r=>{ const v=$('#a_'+r.id).value; vals[r.id]= v===''? (submit?'0':'') : v; });
+      e.submitter.disabled=true;
+      const {error}=await sb.rpc('save_week',{p_week:S.week,p_values:vals,p_remarks:$('#rem').value.trim(),p_submit:submit});
+      if(error){ err(error); e.submitter.disabled=false; return; }
+      toast(submit?'Submitted for approval.':'Draft saved.'); viewMy();
+    });
+  }catch(x){ err(x); $('#myBody').innerHTML='<b>Could not load your KPIs</b>Check your connection and refresh the page.'; }
+}
+
+// ---------- Approvals ----------
+async function viewApprovals(){
+  const m=$('#main'); m.innerHTML=`<h1>Approvals</h1><p class="lead">Weeks your officers have submitted. Open one to approve it or send it back with a remark.</p><div id="apBody" class="empty">Loading…</div>`;
+  const {data,error}=await sb.from('week_submissions').select('*, profiles(full_name,designation,site)').eq('status','submitted').neq('officer_id',S.me.id).order('week_start');
+  if(error) return err(error);
+  const b=$('#apBody');
+  if(!data.length){ b.innerHTML='<b>Nothing waiting</b>All submitted weeks are reviewed.'; return; }
+  b.className='panel'; b.innerHTML=`<div class="scroll"><table><thead><tr><th>Officer</th><th>Week</th><th>Submitted</th><th>Score</th><th></th></tr></thead><tbody>
+    ${data.map(s=>`<tr class="click" data-id="${s.id}"><td><div class="kpiname">${esc(s.profiles?.full_name)}</div><div class="sub">${esc(s.profiles?.designation||'')} ${s.profiles?.site?' – '+esc(s.profiles.site):''}</div></td>
+      <td>${esc(wkLabel(s.week_start))}</td><td class="small">${new Date(s.submitted_at).toLocaleString()}</td><td>${meter(s.score)}</td><td><button class="btn sm">Review</button></td></tr>`).join('')}</tbody></table></div>`;
+  document.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openReview(data.find(x=>x.id===tr.dataset.id), viewApprovals));
+}
+async function openReview(sub, after){
+  const {data:rows,error}=await sb.from('week_kpis').select('*').eq('officer_id',sub.officer_id).eq('week_start',sub.week_start).order('kpi_name');
+  if(error) return err(error);
+  const canAct = sub.status==='submitted' && sub.officer_id!==S.me.id;
+  const md=document.createElement('div'); md.className='modal'; md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Review week">
+    <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${esc(sub.profiles?.full_name||'')}</h2><div class="muted">Week of ${esc(wkLabel(sub.week_start))}</div></div>
+    <div class="row">${spill(sub.status)}<button class="btn line sm" id="mClose">Close</button></div></div>
+    <div class="scroll"><table><thead><tr><th>KPI</th><th class="n">Target</th><th class="n">Achieved</th><th class="n">Per day</th><th>Achievement</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td><div class="kpiname">${esc(r.kpi_name)}</div><div class="sub">${r.direction==='lower'?'Lower is better':esc(r.unit||'')} · weight ${num(r.weight)}</div></td><td class="n">${num(r.target)}</td><td class="n">${num(r.actual??0)}</td><td class="n">${num((r.actual||0)/DAYS)}</td><td>${meter(ach(r.direction,r.target,r.actual))}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="row"><b>Week score: ${pct(sub.score)}</b> ${rpill(sub.score)}</div>
+    ${sub.officer_remarks?`<div class="note"><b>Officer remarks:</b> ${esc(sub.officer_remarks)}</div>`:''}
+    ${canAct?`<label class="f" for="mRem">Your remarks (required to send back)<textarea id="mRem"></textarea></label>
+      <div class="row"><button class="btn" id="mOk">Approve</button><button class="btn warn" id="mBack">Send back to officer</button></div>`
+      : (sub.supervisor_remarks?`<div class="note"><b>${esc(sub.reviewed_by||'Supervisor')}:</b> ${esc(sub.supervisor_remarks)}</div>`:'')}
+  </div>`;
+  document.body.appendChild(md);
+  const close=()=>md.remove(); $('#mClose').onclick=close; md.addEventListener('click',e=>{if(e.target===md) close();});
+  const act=async a=>{ const {error}=await sb.rpc('review_week',{p_submission:sub.id,p_action:a,p_remarks:$('#mRem').value.trim()});
+    if(error) return err(error); toast(a==='approved'?'Approved.':'Sent back to officer.'); close(); refreshPending(); after&&after(); };
+  if($('#mOk')){ $('#mOk').onclick=()=>act('approved'); $('#mBack').onclick=()=>act('returned'); }
+}
+
+// ---------- Dashboard ----------
+const D = { type:'month', year:new Date().getFullYear(), month:new Date().getMonth(), quarter:Math.floor(new Date().getMonth()/3), week:thisWeek(), group:'' };
+function period(){
+  const y=D.year;
+  if(D.type==='week') return [parse(D.week), parse(D.week), 'Week of '+wkLabel(D.week)];
+  if(D.type==='month') return [new Date(y,D.month,1), new Date(y,D.month+1,0), MON[D.month]+' '+y];
+  if(D.type==='quarter') return [new Date(y,D.quarter*3,1), new Date(y,D.quarter*3+3,0), `Q${D.quarter+1} ${y}`];
+  return [new Date(y,0,1), new Date(y,11,31), 'Year '+y];
+}
+async function viewDashboard(){
+  const m=$('#main'); const years=[]; for(let y=new Date().getFullYear(); y>=2026; y--) years.push(y);
+  const groups=[...new Set(S.team.map(p=>p.designation).filter(Boolean))].sort();
+  m.innerHTML=`<h1>Dashboard</h1><p class="lead">Team performance for any period. Daily figures assume 5 working days a week.</p>
+  <div class="panel row" style="margin-bottom:16px">
+    <label class="f" for="dType">View<select id="dType">${[['week','Week'],['month','Month'],['quarter','Quarter'],['year','Year']].map(([v,t])=>`<option value="${v}" ${D.type===v?'selected':''}>${t}</option>`).join('')}</select></label>
+    <label class="f" for="dYear">Year<select id="dYear">${years.map(y=>`<option ${D.year===y?'selected':''}>${y}</option>`).join('')}</select></label>
+    ${D.type==='month'?`<label class="f" for="dMon">Month<select id="dMon">${MON.map((x,i)=>`<option value="${i}" ${D.month===i?'selected':''}>${x}</option>`).join('')}</select></label>`:''}
+    ${D.type==='quarter'?`<label class="f" for="dQ">Quarter<select id="dQ">${[0,1,2,3].map(q=>`<option value="${q}" ${D.quarter===q?'selected':''}>Q${q+1}</option>`).join('')}</select></label>`:''}
+    ${D.type==='week'?`<label class="f" for="dWk">Any day in the week<input type="date" id="dWk" value="${D.week}"></label>`:''}
+    <label class="f" for="dGrp">Designation<select id="dGrp"><option value="">All</option>${groups.map(g=>`<option ${D.group===g?'selected':''}>${esc(g)}</option>`).join('')}</select></label>
+    <button class="btn line" id="dExp" type="button">Export to Excel</button>
+  </div><div id="dBody" class="empty">Loading…</div>`;
+  const re=()=>viewDashboard();
+  $('#dType').onchange=e=>{D.type=e.target.value;re();}; $('#dYear').onchange=e=>{D.year=+e.target.value;re();};
+  $('#dMon')&&($('#dMon').onchange=e=>{D.month=+e.target.value;re();}); $('#dQ')&&($('#dQ').onchange=e=>{D.quarter=+e.target.value;re();});
+  $('#dWk')&&($('#dWk').onchange=e=>{ if(e.target.value){ D.week=ymd(sunday(parse(e.target.value))); re(); }});
+  $('#dGrp').onchange=e=>{D.group=e.target.value;re();};
+  const [from,to,label]=period(); const F=ymd(sunday(from)>=from?sunday(from):addD(sunday(from),7)), T=ymd(to);
+  try{
+    const team=S.team.filter(p=>!D.group||p.designation===D.group);
+    const ids=new Set(team.map(p=>p.id));
+    const [subs,kpis,yearSubs]=await Promise.all([
+      fetchAll(()=>sb.from('week_submissions').select('*').gte('week_start',F).lte('week_start',T).neq('status','draft')),
+      fetchAll(()=>sb.from('week_kpis').select('officer_id,week_start,kpi_name,direction,target,weight,actual').gte('week_start',F).lte('week_start',T)),
+      fetchAll(()=>sb.from('week_submissions').select('officer_id,week_start,score,status').gte('week_start',`${D.year}-01-01`).lte('week_start',`${D.year}-12-31`).neq('status','draft'))]);
+    const S2=subs.filter(s=>ids.has(s.officer_id)), subKey=new Set(S2.map(s=>s.officer_id+'|'+s.week_start));
+    const K2=kpis.filter(k=>ids.has(k.officer_id)&&subKey.has(k.officer_id+'|'+k.week_start));
+    const due=D.type==='week'?(parse(D.week)<=new Date()?1:0):sundaysBetween(from,to);
+    D.cache={team,S2,K2,label};
+    const rows=team.map(p=>{ const ss=S2.filter(s=>s.officer_id===p.id); const sc=ss.filter(s=>s.score!=null);
+      return {p, weeks:ss.length, score: sc.length? sc.reduce((a,s)=>a+Number(s.score),0)/sc.length : null, approved:ss.filter(s=>s.status==='approved').length}; })
+      .sort((a,b)=>(b.score??-1)-(a.score??-1));
+    const scored=rows.filter(r=>r.score!=null); const avg=scored.length? scored.reduce((a,r)=>a+r.score,0)/scored.length : null;
+    const tw=thisWeek(); const subNow=yearSubs.filter(s=>ids.has(s.officer_id)&&s.week_start===tw).length;
+    const pending=S2.filter(s=>s.status==='submitted').length;
+    // KPI achievement by name
+    const byK={}; K2.forEach(k=>{ const o=byK[k.kpi_name]||(byK[k.kpi_name]={a:0,t:0,dir:k.direction}); o.a+=Number(k.actual)||0; o.t+=Number(k.target)||0; });
+    const kList=Object.entries(byK).map(([n,o])=>({n,ach:ach(o.dir,o.t,o.a),a:o.a,t:o.t})).sort((a,b)=>a.ach-b.ach);
+    // monthly trend
+    const mon=MON.map((x,i)=>{ const v=yearSubs.filter(s=>ids.has(s.officer_id)&&s.score!=null&&parse(s.week_start).getMonth()===i); return v.length? v.reduce((a,s)=>a+Number(s.score),0)/v.length : null; });
+    const b=$('#dBody'); b.className='stack';
+    if(!team.length){ b.className='empty'; b.innerHTML='<b>No officers in your team yet</b>Officers appear here once QHSE sets you as their supervisor.'; return; }
+    b.innerHTML=`<div class="tiles">
+      <div class="tile"><span class="k">Team score, ${esc(label)}</span><span class="v" style="color:${col(avg)}">${pct(avg)}</span><span class="s">${rpill(avg)}</span></div>
+      <div class="tile"><span class="k">Submitted this week</span><span class="v">${subNow}/${team.length}</span><span class="s">${esc(wkLabel(tw))}</span></div>
+      <div class="tile"><span class="k">Submission rate</span><span class="v">${due&&team.length?Math.round(100*S2.length/(due*team.length)):0}%</span><span class="s">${S2.length} of ${due*team.length} officer-weeks</span></div>
+      <div class="tile"><span class="k">Waiting approval</span><span class="v" style="color:${pending?'var(--warn)':'inherit'}">${pending}</span><span class="s"><a class="link" href="#approvals">Open approvals</a></span></div>
+    </div>
+    <div class="cols">
+      <div class="panel"><h2>Officer ranking</h2><div class="scroll"><table><thead><tr><th>#</th><th>Officer</th><th class="n">Weeks</th><th>Score</th><th>Rating</th></tr></thead><tbody>
+        ${rows.map((r,i)=>`<tr class="click" data-o="${r.p.id}"><td>${r.score!=null?i+1:'–'}</td><td><div class="kpiname">${esc(r.p.full_name)}</div><div class="sub">${esc(r.p.designation||'')}${r.p.site?' – '+esc(r.p.site):''}</div></td><td class="n">${r.weeks}/${due}</td><td>${meter(r.score)}</td><td>${rpill(r.score)}</td></tr>`).join('')}
+      </tbody></table></div><p class="small muted">Select an officer for the full review.</p></div>
+      <div class="stack">
+        <div class="panel chart"><h2>Team score by month, ${D.year}</h2>${bars(mon, MON)}</div>
+        <div class="panel"><h2>KPI achievement, ${esc(label)}</h2>${kList.length?`<table><tbody>${kList.map(k=>`<tr><td>${esc(k.n)}<div class="sub">${num(k.a)} of ${num(k.t)}</div></td><td style="width:48%">${meter(k.ach)}</td></tr>`).join('')}</tbody></table>`:'<p class="muted small">No submitted weeks in this period.</p>'}</div>
+      </div></div>`;
+    document.querySelectorAll('tr[data-o]').forEach(tr=>tr.onclick=()=>officerDetail(team.find(p=>p.id===tr.dataset.o)));
+  }catch(x){ err(x); }
+  $('#dExp').onclick=exportExcel;
+}
+function bars(vals, labels){
+  const W=560,H=200,L=34,B=24,T=10,iw=W-L-8,ih=H-T-B,max=1.2,bw=iw/labels.length;
+  const y=v=>T+ih-(v/max)*ih; let g='';
+  [0,.3,.6,.9,1.2].forEach(v=>{g+=`<line x1="${L}" x2="${W-8}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" ${v===.9?'stroke-dasharray="4 4"':''}/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${Math.round(v*100)}</text>`;});
+  vals.forEach((v,i)=>{ const x=L+i*bw+bw*.18, w=bw*.64;
+    if(v!=null) g+=`<rect x="${x}" y="${y(Math.min(v,max))}" width="${w}" height="${y(0)-y(Math.min(v,max))}" rx="2" fill="${col(v)}"><title>${labels[i]}: ${pct(v)}</title></rect>`;
+    g+=`<text x="${x+w/2}" y="${H-6}" text-anchor="middle">${esc(labels[i])}</text>`; });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Score chart">${g}</svg><p class="small muted" style="margin:4px 0 0">Dashed line: 90% (Excellent). Scores in %.</p>`;
+}
+async function officerDetail(p){
+  const [from,to,label]=period(); const F=ymd(sunday(from)>=from?sunday(from):addD(sunday(from),7)), T=ymd(to);
+  const last12F=ymd(addD(parse(thisWeek()),-77));
+  const [subs,kp,trend]=await Promise.all([
+    fetchAll(()=>sb.from('week_submissions').select('*').eq('officer_id',p.id).gte('week_start',F).lte('week_start',T).order('week_start',{ascending:false})),
+    fetchAll(()=>sb.from('week_kpis').select('*').eq('officer_id',p.id).gte('week_start',F).lte('week_start',T)),
+    fetchAll(()=>sb.from('week_submissions').select('week_start,score,status').eq('officer_id',p.id).gte('week_start',last12F).neq('status','draft'))]);
+  const done=new Set(subs.filter(s=>s.status!=='draft').map(s=>s.week_start));
+  const byK={}; kp.filter(k=>done.has(k.week_start)).forEach(k=>{const o=byK[k.kpi_name]||(byK[k.kpi_name]={a:0,t:0,dir:k.direction,u:k.unit,w:0}); o.a+=Number(k.actual)||0; o.t+=Number(k.target)||0; o.w++;});
+  const sc=subs.filter(s=>s.status!=='draft'&&s.score!=null); const avg=sc.length?sc.reduce((a,s)=>a+Number(s.score),0)/sc.length:null;
+  const wk=[]; for(let i=11;i>=0;i--) wk.push(ymd(addD(parse(thisWeek()),-7*i)));
+  const tv=wk.map(k=>{const s=trend.find(t=>t.week_start===k); return s?.score!=null?Number(s.score):null;});
+  const md=document.createElement('div'); md.className='modal'; md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Officer review">
+    <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${esc(p.full_name)}</h2><div class="muted">${esc(p.designation||'')}${p.site?' – '+esc(p.site):''} · ${esc(label)}</div></div><button class="btn line sm" id="oClose">Close</button></div>
+    <div class="tiles"><div class="tile"><span class="k">Score</span><span class="v" style="color:${col(avg)}">${pct(avg)}</span><span class="s">${rpill(avg)}</span></div>
+      <div class="tile"><span class="k">Weeks submitted</span><span class="v">${done.size}</span><span class="s">${subs.filter(s=>s.status==='approved').length} approved</span></div></div>
+    <div class="scroll"><table><thead><tr><th>KPI</th><th class="n">Target</th><th class="n">Achieved</th><th class="n">Per day</th><th>Achievement</th></tr></thead><tbody>
+      ${Object.entries(byK).map(([n,o])=>`<tr><td>${esc(n)}<div class="sub">${o.dir==='lower'?'Lower is better':esc(o.u||'')}</div></td><td class="n">${num(o.t)}</td><td class="n">${num(o.a)}</td><td class="n">${num(o.a/(o.w*DAYS))}</td><td>${meter(ach(o.dir,o.t,o.a))}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">No submitted weeks in this period.</td></tr>'}
+    </tbody></table></div>
+    <div class="chart"><h2>Weekly score, last 12 weeks</h2>${bars(tv, wk.map(shortD))}</div>
+    <div><h2>Weeks in this period</h2><table><tbody>${subs.map(s=>`<tr class="click" data-s="${s.id}"><td>${esc(wkLabel(s.week_start))}</td><td>${spill(s.status)}</td><td class="n">${pct(s.score)}</td><td class="small">${esc(s.officer_remarks||'')}</td></tr>`).join('')||'<tr><td class="muted">No weeks yet.</td></tr>'}</tbody></table></div>
+  </div>`;
+  document.body.appendChild(md);
+  const close=()=>md.remove(); $('#oClose').onclick=close; md.addEventListener('click',e=>{if(e.target===md) close();});
+  md.querySelectorAll('tr[data-s]').forEach(tr=>tr.onclick=()=>{ const s=subs.find(x=>x.id===tr.dataset.s); close(); openReview({...s,profiles:p}, viewDashboard); });
+}
+function exportExcel(){
+  const c=D.cache; if(!c) return toast('Load the dashboard first.');
+  const name=Object.fromEntries(c.team.map(p=>[p.id,p]));
+  const subMap=Object.fromEntries(c.S2.map(s=>[s.officer_id+'|'+s.week_start,s]));
+  const rows=c.K2.map(k=>{ const p=name[k.officer_id]||{}, s=subMap[k.officer_id+'|'+k.week_start]||{};
+    return {Officer:p.full_name, Designation:p.designation, Function:p.function, Category:p.category, Site:p.site, 'Week starting':k.week_start, KPI:k.kpi_name,
+      Target:Number(k.target), Achieved:Number(k.actual)||0, 'Per day':Math.round((Number(k.actual)||0)/DAYS*10)/10, 'Achievement %':Math.round(ach(k.direction,k.target,k.actual)*100),
+      'Week score %':s.score!=null?Math.round(s.score*100):'', Status:s.status, 'Reviewed by':s.reviewed_by||'', 'Supervisor remarks':s.supervisor_remarks||'', 'Officer remarks':s.officer_remarks||''}; });
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'KPI data');
+  XLSX.writeFile(wb, `AMHEC_KPI_${c.label.replace(/\W+/g,'_')}.xlsx`);
+}
+
+// ---------- Weekly plan ----------
+const P = { week:thisWeek(), officer:null };
+async function viewPlan(){
+  const m=$('#main');
+  if(!S.team.length){ m.innerHTML='<h1>Weekly plan</h1><div class="empty"><b>No officers in your team yet</b>QHSE sets which officers report to you.</div>'; return; }
+  if(!P.officer) P.officer=S.team[0].id;
+  m.innerHTML=`<h1>Weekly plan</h1><p class="lead">Each week's KPIs are created from the assignment rules in Setup. Change one officer's KPIs or targets for a single week here.</p>
+  ${ribbon(P.week,'pl')}
+  <div class="panel row" style="margin-bottom:16px;justify-content:space-between">
+    <label class="f" for="pOff" style="min-width:240px">Officer<select id="pOff">${S.team.map(p=>`<option value="${p.id}" ${P.officer===p.id?'selected':''}>${esc(p.full_name)} – ${esc(p.designation||'')}</option>`).join('')}</select></label>
+    <div class="row"><button class="btn line" id="pPub">Create this week's KPIs for whole team</button></div>
+  </div><div id="pBody" class="empty">Loading…</div>`;
+  bindRibbon('pl',()=>P.week,w=>P.week=w,viewPlan);
+  $('#pOff').onchange=e=>{P.officer=e.target.value;viewPlan();};
+  $('#pPub').onclick=async()=>{ const {data,error}=await sb.rpc('publish_week',{p_week:P.week}); if(error) return err(error); toast(`KPIs ready for ${data} officers.`); viewPlan(); };
+  try{
+    const {error:e0}=await sb.rpc('ensure_week_plan',{p_officer:P.officer,p_week:P.week}); if(e0) throw e0;
+    const [{data:rows},{data:sub},{data:lib}]=await Promise.all([
+      sb.from('week_kpis').select('*').eq('officer_id',P.officer).eq('week_start',P.week).order('kpi_name'),
+      sb.from('week_submissions').select('*').eq('officer_id',P.officer).eq('week_start',P.week).maybeSingle(),
+      sb.from('kpi_library').select('*').eq('active',true).order('name')]);
+    const st=sub?.status||'draft', locked=st==='approved';
+    const used=new Set(rows.map(r=>r.kpi_id)); const free=lib.filter(k=>!used.has(k.id));
+    const b=$('#pBody'); b.className='panel';
+    b.innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">KPIs for this officer and week</h2>${spill(st)}</div>
+      ${st==='submitted'?'<div class="note warn" style="margin-bottom:10px">The officer has already submitted this week. Changing targets updates the score.</div>':''}
+      ${locked?'<div class="note good" style="margin-bottom:10px">This week is approved and locked.</div>':''}
+      ${rows.length?`<div class="scroll"><table><thead><tr><th>KPI</th><th class="n">Target</th><th class="n">Weight</th><th class="n">Achieved</th><th></th></tr></thead><tbody>
+      ${rows.map(r=>`<tr><td><div class="kpiname">${esc(r.kpi_name)}</div><div class="sub">${r.direction==='lower'?'Lower is better':esc(r.unit||'')}</div></td>
+        <td class="n"><input type="number" min="0" step="any" id="t_${r.id}" value="${r.target}" style="width:90px" ${locked?'disabled':''} aria-label="Target"></td>
+        <td class="n"><input type="number" min="0.1" step="any" id="w_${r.id}" value="${r.weight}" style="width:70px" ${locked?'disabled':''} aria-label="Weight"></td>
+        <td class="n">${r.actual==null?'–':num(r.actual)}</td>
+        <td>${locked?'':`<button class="btn line sm" data-del="${r.id}">Remove</button>`}</td></tr>`).join('')}</tbody></table></div>`
+      :'<div class="empty"><b>No KPIs for this week</b>No assignment rule matches this officer. Add KPIs below, or add a rule in Setup.</div>'}
+      ${locked?'':`<div class="row" style="margin-top:14px">
+        <button class="btn" id="pSave" ${rows.length?'':'disabled'}>Save changes</button>
+        <label class="f" for="pAdd" style="min-width:220px">Add a KPI for this week<select id="pAdd"><option value="">Choose KPI</option>${free.map(k=>`<option value="${k.id}">${esc(k.name)}</option>`).join('')}</select></label>
+        <button class="btn line" id="pAddB">Add</button>
+        <button class="btn line" id="pReset" ${st==='submitted'?'disabled':''}>Reset to standard KPIs</button></div>`}`;
+    if(locked) return;
+    const recalc=()=>sb.rpc('recalc_score',{p_officer:P.officer,p_week:P.week});
+    $('#pSave').onclick=async()=>{ for(const r of rows){ const t=Number($('#t_'+r.id).value), w=Number($('#w_'+r.id).value)||1;
+        if(t!==Number(r.target)||w!==Number(r.weight)){ const {error}=await sb.from('week_kpis').update({target:t,weight:w}).eq('id',r.id); if(error) return err(error);} }
+      await recalc(); toast('Plan saved.'); viewPlan(); };
+    b.querySelectorAll('[data-del]').forEach(x=>x.onclick=async()=>{ const {error}=await sb.from('week_kpis').delete().eq('id',x.dataset.del); if(error) return err(error); await recalc(); toast('KPI removed for this week.'); viewPlan(); });
+    $('#pAddB').onclick=async()=>{ const k=lib.find(l=>l.id===$('#pAdd').value); if(!k) return toast('Choose a KPI to add.');
+      const {error}=await sb.from('week_kpis').insert({officer_id:P.officer,week_start:P.week,kpi_id:k.id,kpi_name:k.name,unit:k.unit,direction:k.direction,target:k.default_target,weight:k.default_weight});
+      if(error) return err(error); await recalc(); toast('KPI added.'); viewPlan(); };
+    $('#pReset').onclick=async()=>{ if(!confirmInline($('#pReset'),'Click again to reset')) return;
+      const {error}=await sb.from('week_kpis').delete().eq('officer_id',P.officer).eq('week_start',P.week); if(error) return err(error);
+      const {error:e2}=await sb.rpc('ensure_week_plan',{p_officer:P.officer,p_week:P.week}); if(e2) return err(e2); toast('Reset to standard KPIs.'); viewPlan(); };
+  }catch(x){ err(x); }
+}
+function confirmInline(btn,txt){ if(btn.dataset.armed){ return true; } btn.dataset.armed='1'; const o=btn.textContent; btn.textContent=txt; setTimeout(()=>{btn.textContent=o; delete btn.dataset.armed;},3500); return false; }
+
+// ---------- Setup (admin) ----------
+let setupTab='rules';
+async function viewSetup(){
+  const m=$('#main');
+  m.innerHTML=`<h1>Setup</h1><p class="lead">Register people, keep the KPI list, and decide which KPIs each function, designation or category gets.</p>
+   <div class="chips" style="margin-bottom:16px">${[['rules','KPI assignment'],['people','People'],['kpis','KPI list']].map(([k,t])=>`<button class="chip ${setupTab===k?'on':''}" data-st="${k}">${t}</button>`).join('')}</div><div id="sBody" class="empty">Loading…</div>`;
+  m.querySelectorAll('[data-st]').forEach(c=>c.onclick=()=>{setupTab=c.dataset.st;viewSetup();});
+  try{ await ({rules:setupRules, people:setupPeople, kpis:setupKpis})[setupTab](); }catch(x){ err(x); }
+}
+async function setupPeople(){
+  const {data:people,error}=await sb.from('profiles').select('*').order('full_name'); if(error) throw error;
+  const sups=people.filter(p=>p.role!=='officer');
+  const b=$('#sBody'); b.className='stack';
+  const form=(p={})=>`<form id="pF" class="panel stack"><h2 style="margin:0">${p.id?'Edit '+esc(p.full_name):'Add a person'}</h2><div class="grid3">
+    <label class="f" for="pf_name">Full name<input id="pf_name" type="text" required value="${esc(p.full_name)}"></label>
+    <label class="f" for="pf_email">Work email<input id="pf_email" type="email" required value="${esc(p.email)}"></label>
+    <label class="f" for="pf_emp">Employee no.<input id="pf_emp" type="text" value="${esc(p.employee_no)}"></label>
+    <label class="f" for="pf_fn">Function<input id="pf_fn" type="text" list="lFn" value="${esc(p.function)}" placeholder="e.g. QHSE"></label>
+    <label class="f" for="pf_des">Designation<input id="pf_des" type="text" list="lDes" value="${esc(p.designation)}" placeholder="e.g. HSE Officer"></label>
+    <label class="f" for="pf_cat">Category<input id="pf_cat" type="text" list="lCat" value="${esc(p.category)}" placeholder="e.g. Rig site"></label>
+    <label class="f" for="pf_site">Site / client<input id="pf_site" type="text" value="${esc(p.site)}"></label>
+    <label class="f" for="pf_sup">Supervisor<select id="pf_sup"><option value="">None</option>${sups.map(s=>`<option value="${esc(s.email)}" ${p.supervisor_email===s.email?'selected':''}>${esc(s.full_name)}</option>`).join('')}</select></label>
+    <label class="f" for="pf_role">Role<select id="pf_role">${['officer','supervisor','admin'].map(r=>`<option ${p.role===r?'selected':''}>${r}</option>`).join('')}</select></label>
+    <label class="f" for="pf_act">Status<select id="pf_act"><option value="1" ${p.active!==false?'selected':''}>Active</option><option value="0" ${p.active===false?'selected':''}>Inactive</option></select></label>
+   </div><div class="row"><button class="btn" type="submit">${p.id?'Save person':'Add person'}</button>${p.id?'<button class="btn line" type="button" id="pfCancel">Cancel</button>':''}</div></form>`;
+  const lists=`<datalist id="lFn">${[...new Set(people.map(p=>p.function).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
+    <datalist id="lDes">${[...new Set(people.map(p=>p.designation).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>
+    <datalist id="lCat">${[...new Set(people.map(p=>p.category).filter(Boolean))].map(v=>`<option value="${esc(v)}">`).join('')}</datalist>`;
+  const render=(edit)=>{ b.innerHTML = lists + form(edit) + `
+    <details class="panel"><summary><b>Add many people at once (paste from Excel)</b></summary>
+      <p class="small muted">Copy these columns from Excel, in this order, and paste: Name, Email, Employee no., Function, Designation, Category, Site, Supervisor email, Role, Password (optional, 8+ characters).</p>
+      <textarea id="bulk" style="min-height:120px"></textarea><div class="row" style="margin-top:8px"><button class="btn" id="bulkB">Add pasted people</button></div></details>
+    <div class="panel"><h2>${people.length} people</h2><div class="scroll"><table><thead><tr><th>Name</th><th>Function</th><th>Designation</th><th>Category</th><th>Supervisor</th><th>Role</th><th></th></tr></thead><tbody>
+    ${people.map(p=>`<tr><td><div class="kpiname">${esc(p.full_name)}${p.active?'':' <span class="pill r-na">Inactive</span>'}</div><div class="sub">${esc(p.email)}</div></td><td>${esc(p.function||'')}</td><td>${esc(p.designation||'')}</td><td>${esc(p.category||'')}</td>
+      <td class="small">${esc((people.find(s=>s.email===p.supervisor_email)||{}).full_name||'')}</td><td>${esc(p.role)}</td><td class="row" style="flex-wrap:nowrap"><button class="btn line sm" data-e="${p.id}">Edit</button><button class="btn line sm" data-pw="${esc(p.email)}">Set password</button></td></tr>`).join('')}</tbody></table></div></div>`;
+    b.querySelectorAll('[data-e]').forEach(x=>x.onclick=()=>{render(people.find(p=>p.id===x.dataset.e)); window.scrollTo(0,0);});
+    $('#pfCancel')&&($('#pfCancel').onclick=()=>render());
+    b.querySelectorAll('[data-pw]').forEach(x=>x.onclick=()=>{
+      const md=document.createElement('div'); md.className='modal'; md.innerHTML=`<form class="panel stack" id="spF" style="max-width:440px" aria-label="Set password">
+        <h2 style="margin:0">Set password</h2><p class="muted" style="margin:0">${esc(x.dataset.pw)}</p>
+        <label class="f" for="sp1">Password (at least 8 characters)<input id="sp1" type="text" minlength="8" required value="${'Amhec-'+Math.random().toString(36).slice(2,8)}"></label>
+        <p class="small muted" style="margin:0">Share it with the person. They can change it after signing in.</p>
+        <div class="row"><button class="btn" type="submit">Save password</button><button class="btn line" type="button" id="spX">Cancel</button></div></form>`;
+      document.body.appendChild(md); $('#spX').onclick=()=>md.remove();
+      $('#spF').onsubmit=async e=>{ e.preventDefault(); const {error}=await sb.rpc('admin_set_password',{p_email:x.dataset.pw,p_password:$('#sp1').value});
+        if(error) return err(error); toast('Password saved. Share it with the person.'); md.remove(); };
+    });
+    $('#pF').onsubmit=async e=>{ e.preventDefault();
+      const v={full_name:$('#pf_name').value.trim(), email:$('#pf_email').value.trim().toLowerCase(), employee_no:$('#pf_emp').value.trim()||null,
+        function:$('#pf_fn').value.trim()||null, designation:$('#pf_des').value.trim()||null, category:$('#pf_cat').value.trim()||null, site:$('#pf_site').value.trim()||null,
+        supervisor_email:$('#pf_sup').value||null, role:$('#pf_role').value, active:$('#pf_act').value==='1'};
+      const q = edit?.id ? sb.from('profiles').update(v).eq('id',edit.id) : sb.from('profiles').insert(v);
+      const {error}=await q; if(error) return err(error.code==='23505'?{message:'That email is already registered.'}:error);
+      toast(edit?.id?'Saved.':'Person added.'); viewSetup(); };
+    $('#bulkB').onclick=async()=>{ const lines=$('#bulk').value.split(/\r?\n/).map(l=>l.split('\t')).filter(c=>c[0]&&c[1]);
+      if(!lines.length) return toast('Paste rows copied from Excel first.');
+      const recs=lines.map(c=>({full_name:c[0].trim(),email:(c[1]||'').trim().toLowerCase(),employee_no:c[2]?.trim()||null,function:c[3]?.trim()||null,designation:c[4]?.trim()||null,category:c[5]?.trim()||null,site:c[6]?.trim()||null,supervisor_email:c[7]?.trim().toLowerCase()||null,role:['officer','supervisor','admin'].includes((c[8]||'').trim().toLowerCase())?(c[8]).trim().toLowerCase():'officer'}));
+      const {error}=await sb.from('profiles').upsert(recs,{onConflict:'email'}); if(error) return err(error);
+      let pw=0, bad=0; for(const c of lines){ const p=(c[9]||'').trim(); if(p){ const {error:e2}=await sb.rpc('admin_set_password',{p_email:c[1].trim().toLowerCase(),p_password:p}); e2?bad++:pw++; } }
+      toast(`${recs.length} people saved${pw?`, ${pw} passwords set`:''}${bad?`, ${bad} passwords too short`:''}.`); viewSetup(); };
+  };
+  render();
+}
+async function setupKpis(){
+  const {data:lib,error}=await sb.from('kpi_library').select('*').order('name'); if(error) throw error;
+  const b=$('#sBody'); b.className='stack';
+  const render=(k)=>{ b.innerHTML=`<form id="kF" class="panel stack"><h2 style="margin:0">${k?.id?'Edit KPI':'Add a KPI'}</h2><div class="grid3">
+      <label class="f" for="k_n">KPI name<input id="k_n" type="text" required value="${esc(k?.name)}"></label>
+      <label class="f" for="k_u">Unit<input id="k_u" type="text" value="${esc(k?.unit)}" placeholder="e.g. inspections"></label>
+      <label class="f" for="k_d">Direction<select id="k_d"><option value="higher" ${k?.direction!=='lower'?'selected':''}>Higher is better</option><option value="lower" ${k?.direction==='lower'?'selected':''}>Lower is better</option></select></label>
+      <label class="f" for="k_t">Default weekly target<input id="k_t" type="number" min="0" step="any" value="${k?.default_target??1}"></label>
+      <label class="f" for="k_w">Default weight<input id="k_w" type="number" min="0.1" step="any" value="${k?.default_weight??1}"></label>
+      <label class="f" for="k_a">Status<select id="k_a"><option value="1" ${k?.active!==false?'selected':''}>Active</option><option value="0" ${k?.active===false?'selected':''}>Inactive</option></select></label>
+    </div><div class="row"><button class="btn" type="submit">${k?.id?'Save KPI':'Add KPI'}</button>${k?.id?'<button class="btn line" type="button" id="kC">Cancel</button>':''}</div></form>
+    <div class="panel"><h2>${lib.length} KPIs</h2><div class="scroll"><table><thead><tr><th>KPI</th><th>Direction</th><th class="n">Default target</th><th class="n">Weight</th><th></th></tr></thead><tbody>
+    ${lib.map(x=>`<tr><td>${esc(x.name)}${x.active?'':' <span class="pill r-na">Inactive</span>'}<div class="sub">${esc(x.unit||'')}</div></td><td>${x.direction==='lower'?'Lower is better':'Higher is better'}</td><td class="n">${num(x.default_target)}</td><td class="n">${num(x.default_weight)}</td><td><button class="btn line sm" data-e="${x.id}">Edit</button></td></tr>`).join('')}
+    </tbody></table></div></div>`;
+    b.querySelectorAll('[data-e]').forEach(x=>x.onclick=()=>{render(lib.find(l=>l.id===x.dataset.e)); window.scrollTo(0,0);});
+    $('#kC')&&($('#kC').onclick=()=>render());
+    $('#kF').onsubmit=async e=>{ e.preventDefault(); const v={name:$('#k_n').value.trim(),unit:$('#k_u').value.trim()||null,direction:$('#k_d').value,default_target:Number($('#k_t').value)||0,default_weight:Number($('#k_w').value)||1,active:$('#k_a').value==='1'};
+      const {error}=await (k?.id?sb.from('kpi_library').update(v).eq('id',k.id):sb.from('kpi_library').insert(v)); if(error) return err(error); toast(k?.id?'KPI saved.':'KPI added.'); viewSetup(); };
+  };
+  render();
+}
+async function setupRules(){
+  const [{data:rules,error},{data:lib},{data:people}]=await Promise.all([
+    sb.from('assignment_rules').select('*, kpi_library(name,unit,direction)').order('scope_type').order('scope_value'),
+    sb.from('kpi_library').select('*').eq('active',true).order('name'),
+    sb.from('profiles').select('id,full_name,function,designation,category').eq('active',true).order('full_name')]);
+  if(error) throw error;
+  const vals=t=> t==='officer'? people.map(p=>[p.id,p.full_name]) : [...new Set(people.map(p=>p[t]).filter(Boolean))].sort().map(v=>[v,v]);
+  const label=r=> r.scope_type==='officer' ? (people.find(p=>p.id===r.scope_value)||{}).full_name||'Unknown officer' : r.scope_value;
+  const typeName={function:'Function',designation:'Designation',category:'Category',officer:'Individual officer'};
+  const b=$('#sBody'); b.className='stack';
+  let type='designation';
+  const draw=()=>{
+    const groups={}; rules.forEach(r=>{ const k=r.scope_type+'|'+r.scope_value; (groups[k]=groups[k]||[]).push(r); });
+    b.innerHTML=`<div class="note">When a week starts, each officer gets the KPIs that match their <b>function</b>, <b>category</b> and <b>designation</b>. If the same KPI appears more than once, the most specific wins: individual officer, then designation, then category, then function.</div>
+    <form id="rF" class="panel stack"><h2 style="margin:0">Assign KPIs</h2>
+      <div class="grid3">
+        <label class="f" for="r_t">Assign by<select id="r_t">${Object.entries(typeName).map(([k,t])=>`<option value="${k}" ${type===k?'selected':''}>${t}</option>`).join('')}</select></label>
+        <label class="f" for="r_v">Who<select id="r_v" required>${vals(type).map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('')||'<option value="">Add people with this field first</option>'}</select></label>
+        <label class="f" for="r_f">Starts from week<input id="r_f" type="date" value="${thisWeek()}"></label>
+      </div>
+      <div class="scroll"><table><thead><tr><th>Use</th><th>KPI</th><th class="n">Weekly target</th><th class="n">Weight</th>${type==='officer'?'<th>Remove for this officer</th>':''}</tr></thead><tbody>
+      ${lib.map(k=>`<tr><td><input type="checkbox" id="rc_${k.id}" aria-label="Use ${esc(k.name)}"></td><td>${esc(k.name)}<div class="sub">${k.direction==='lower'?'Lower is better':esc(k.unit||'')}</div></td>
+        <td class="n"><input type="number" min="0" step="any" id="rt_${k.id}" value="${k.default_target}" style="width:90px" aria-label="Target"></td>
+        <td class="n"><input type="number" min="0.1" step="any" id="rw_${k.id}" value="${k.default_weight}" style="width:70px" aria-label="Weight"></td>
+        ${type==='officer'?`<td><input type="checkbox" id="rx_${k.id}" aria-label="Remove ${esc(k.name)} for this officer"></td>`:''}</tr>`).join('')}</tbody></table></div>
+      <div class="row"><button class="btn" type="submit">Save assignment</button><span class="small muted">Applies from the chosen week. Weeks already created keep their KPIs; use Weekly plan → Reset to apply changes to an open week.</span></div>
+    </form>
+    <div class="panel"><h2>Current assignments</h2>${Object.keys(groups).length? Object.entries(groups).map(([k,rs])=>`
+      <div style="margin-bottom:14px"><b>${typeName[rs[0].scope_type]}: ${esc(label(rs[0]))}</b>
+      <div class="scroll"><table><tbody>${rs.map(r=>`<tr><td>${esc(r.kpi_library?.name)}${r.excluded?' <span class="pill r-po">Removed</span>':''}${r.active?'':' <span class="pill r-na">Stopped</span>'}</td>
+        <td class="n">target ${num(r.target)}</td><td class="n">weight ${num(r.weight)}</td><td class="small">from ${esc(r.effective_from)}${r.effective_to?' to '+esc(r.effective_to):''}</td>
+        <td>${r.active?`<button class="btn line sm" data-stop="${r.id}">Stop</button>`:''}</td></tr>`).join('')}</tbody></table></div></div>`).join('') : '<p class="muted">No assignments yet.</p>'}</div>`;
+    $('#r_t').onchange=e=>{type=e.target.value; draw();};
+    b.querySelectorAll('[data-stop]').forEach(x=>x.onclick=async()=>{ if(!confirmInline(x,'Click to confirm')) return;
+      const {error}=await sb.from('assignment_rules').update({active:false,effective_to:ymd(addD(parse(thisWeek()),-1))}).eq('id',x.dataset.stop); if(error) return err(error); toast('Assignment stopped from this week.'); viewSetup(); });
+    $('#rF').onsubmit=async e=>{ e.preventDefault(); const v=$('#r_v').value; if(!v) return toast('Choose who this applies to.');
+      const from=ymd(sunday(parse($('#r_f').value||thisWeek())));
+      const recs=lib.filter(k=>$('#rc_'+k.id).checked||$('#rx_'+k.id)?.checked).map(k=>({scope_type:type,scope_value:v,kpi_id:k.id,target:Number($('#rt_'+k.id).value)||0,weight:Number($('#rw_'+k.id).value)||1,excluded:!!$('#rx_'+k.id)?.checked,effective_from:from}));
+      if(!recs.length) return toast('Tick at least one KPI.');
+      // close older active rules for the same scope + KPI so the new target takes over from this date
+      for(const r of recs){ const old=rules.filter(o=>o.active&&o.scope_type===r.scope_type&&o.scope_value===r.scope_value&&o.kpi_id===r.kpi_id&&!o.effective_to);
+        for(const o of old){ await sb.from('assignment_rules').update({effective_to:ymd(addD(parse(from),-1))}).eq('id',o.id); } }
+      const {error}=await sb.from('assignment_rules').insert(recs); if(error) return err(error); toast(`${recs.length} KPIs assigned.`); viewSetup(); };
+  };
+  draw();
+}
+
+// ---------- boot ----------
+sb.auth.onAuthStateChange((ev, session)=>{
+  if(session && !S.me && !S.starting){ S.starting=true; setTimeout(()=>startApp(session).finally(()=>S.starting=false),0); }
+  if(!session){ S.me=null; viewLogin(); }
+});
+sb.auth.getSession().then(({data})=>{ if(!data.session) viewLogin(); });
+})();
+</script>
+</body>
+</html>
