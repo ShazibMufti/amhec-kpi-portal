@@ -129,8 +129,22 @@ details.grp>summary::after{content:"▾";color:var(--muted);font-size:14px}
 details.grp:not([open])>summary::after{content:"▸"}
 details.grp>.in{padding:0 14px 12px}
 .prog{font-size:12.5px;color:var(--muted);white-space:nowrap}
-.dg{display:grid;grid-template-columns:repeat(6,58px) 64px;gap:6px;align-items:center}
-.dg input{width:58px;padding:7px 6px;text-align:center}
+.dg{display:grid;grid-template-columns:repeat(6,80px) 64px;gap:6px;align-items:center}
+.dg input{width:100%;padding:7px 6px;text-align:center}
+.dg .dc{display:grid;gap:3px}
+.dg select.lc{padding:4px 2px;font-size:11.5px;border-radius:5px;color:var(--muted)}
+.dg select.lc.set{color:var(--ink);border-color:#c7d2fe;background:#eef2ff}
+.dg.ro span small{display:block;font-size:10.5px;color:var(--brand);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dg.dh button.dbtn{font:600 12px var(--body);color:var(--brand);background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:3px 0;cursor:pointer}
+.dg.dh button.dbtn:hover{background:var(--brand);color:#fff}
+.pt th button.dbtn{font:600 12.5px var(--body);color:var(--brand);background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap}
+.pt td.pd{min-width:130px;vertical-align:top}
+.pt td.pd b{display:block;font-size:13px;color:var(--brand)}
+.pt td.pd .sub{white-space:pre-wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:7px 14px;cursor:pointer;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--brand);color:#fff}
+table.mp td{vertical-align:top}
 .dg input.td{border-color:var(--amber);box-shadow:0 0 0 2px rgba(245,158,11,.18)}
 .dg.dh span{font-size:12px;font-weight:600;color:var(--muted);text-align:center}
 .dg.dh span.td{color:#92400e;background:#fef3c7;border-radius:6px;padding:2px 0}
@@ -138,7 +152,8 @@ details.grp>.in{padding:0 14px 12px}
 .dg.ro span{text-align:center;font-size:13px;font-variant-numeric:tabular-nums}
 table.kt td:first-child{min-width:240px}
 .prog b{color:var(--ink)}
-@media (max-width:640px){.dg{grid-template-columns:repeat(6,minmax(0,1fr)) 38px;gap:3px} .dg input{width:100%;padding:7px 1px} .dg.dh span{font-size:11px} details.grp>.in{padding:0 10px 10px}}
+@media (max-width:640px){.dg{grid-template-columns:repeat(6,minmax(0,1fr)) 38px;gap:3px} .dg input{width:100%;padding:7px 1px} .dg select.lc{font-size:10px;padding:3px 0} .dg.dh span{font-size:11px} details.grp>.in{padding:0 10px 10px}}
+@media (max-width:640px){table.mp thead{display:none} table.mp tr{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)} table.mp td{border:0;padding:0} table.mp td:first-child{display:flex;gap:8px;align-items:baseline}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -155,8 +170,8 @@ const sb = supabase.createClient(SB_URL, SB_KEY);
 const LOGO = "data:image/png;base64,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";
 const DAYS = 6; // working days per week, Sat–Thu
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const FUNCTIONS = ['HSE Operations','Quality Assurance','Journey Management','QHSE Training','Rig Move HSE Operations','Premises Safety / Security'];
-const DESIGNATIONS = ['Officer HSE','Senior Officer HSE','Supervisor HSE','Superintendent HSE','Manager HSE','Manager Quality & HSES Programs','Coordinator QHSE Training','DOCUMENT CONTROLLER','DATA MANAGEMENT & QHSE DIGITALIZATION','ADMINISTRATOR HSE','MEDIC','RIG SUPERVISOR','RIG SUPERINTENDENT','Champion Journey Management','JM ADMIN','PREMISES HEAD','PREMISES SUPERVISOR'];
+const FUNCTIONS = ['HSE Operations','Quality Assurance','Journey Management','QHSE Training','Rig Move HSE Operations','QHSE Operations','Premises Safety / Security'];
+const DESIGNATIONS = ['Officer HSE','Senior Officer HSE','Supervisor HSE','Superintendent HSE','Manager HSE','Manager Quality & HSES Programs','Coordinator QHSE Training','Document Controller','DATA MANAGEMENT & QHSE DIGITALIZATION','ADMINISTRATOR HSE','MEDIC','RIG SUPERVISOR','RIG SUPERINTENDENT','Champion Journey Management','JM ADMIN','PREMISES HEAD','PREMISES SUPERVISOR'];
 const ROLE = {officer:'Officer',supervisor:'Manager',admin:'Admin'};
 const desigOf = v => { const t=String(v||'').trim(); return DESIGNATIONS.find(d=>d.toLowerCase()===t.toLowerCase())||t; };
 const PERIODS = {day:'per day',week:'per week',month:'per month',event:'per month (event-driven)',bimonth:'per 2 months',quarter:'per quarter',half:'per half-year',year:'per year'};
@@ -207,8 +222,13 @@ const meter = s => `<div class="meter"><i><b style="width:${Math.min(100,(s||0)/
 const rpill = s => { const [t,c]=rating(s); return `<span class="pill ${c}">${t}</span>`; };
 const spill = st => `<span class="pill s-${esc(st)}">${({draft:'Not submitted',submitted:'Waiting approval',approved:'Approved',returned:'Returned'})[st]||esc(st)}</span>`;
 const DAYN=['Sat','Sun','Mon','Tue','Wed','Thu'];
-const dayRO = r => `<div class="dg ro">${DAYN.map((d,i)=>`<span title="${d}">${Array.isArray(r.daily)&&r.daily[i]!==''&&r.daily[i]!=null?num(r.daily[i]):'·'}</span>`).join('')}<b class="tot">${r.actual==null?'–':num(r.actual)+(r.measure==='percent'?'%':'')}</b></div>`;
+const refOf = (r,i) => Array.isArray(r.daily_ref) ? (r.daily_ref[i]||'') : '';
+const locList = r => (S.lists||{})[r.loc_list||'sites'] || (S.lists||{}).sites || [];
+const locOpts = (list,cur,blank='Location') => `<option value="">${blank}</option>`+[...new Set([...(cur&&!list.includes(cur)?[cur]:[]),...list])].map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('');
+const dayVal = (r,i) => Array.isArray(r.daily)&&r.daily[i]!==''&&r.daily[i]!=null ? r.daily[i] : null;
+const dayRO = r => `<div class="dg ro">${DAYN.map((d,i)=>{ const ref=refOf(r,i); return `<span title="${d}${ref?': '+esc(ref):''}">${dayVal(r,i)!=null?num(r.daily[i]):'·'}${ref?`<small>${esc(ref)}</small>`:''}</span>`; }).join('')}<b class="tot">${r.actual==null?'–':num(r.actual)+(r.measure==='percent'?'%':'')}</b></div>`;
 const dayHeadRO = week => `<div class="dg dh">${DAYN.map((d,i)=>`<span>${d} ${addD(parse(week),i).getDate()}</span>`).join('')}<span class="tot">Week</span></div>`;
+const dayHeadBtn = week => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn" data-day="${i}" title="Open ${d} ${shortD(ymd(addD(parse(week),i)))}">${d} ${addD(parse(week),i).getDate()}</button>`).join('')}<span class="tot">Week</span></div>`;
 const tgtText = r => r.measure==='percent' ? '100%' : (r.period_target==null ? 'Record only' : `${num(r.period_target)} ${PERIODS[r.period]||''}`);
 
 async function fetchAll(make){ let out=[], from=0; for(;;){ const {data,error}=await make().range(from,from+999); if(error) throw error; out=out.concat(data); if(data.length<1000) break; from+=1000; } return out; }
@@ -238,6 +258,7 @@ async function startApp(session){
   if(error){ err(error); return; }
   if(!me || !me.active){ $('#root').innerHTML=`<div class="loginbg"><div class="login"><div class="panel"><h1>Not registered</h1><p>${esc(email)} is not in the portal yet. Ask the QHSE department to add you.</p><button class="btn line" id="so">Sign out</button></div></div></div>`; $('#so').onclick=()=>sb.auth.signOut(); return; }
   S.me=me; S.week=thisWeek();
+  const {data:ll} = await sb.from('lookup_lists').select('name,items'); S.lists=Object.fromEntries((ll||[]).map(l=>[l.name,l.items||[]]));
   const {data:team} = await sb.from('profiles').select('*').eq('active',true).order('full_name');
   S.team = (team||[]).filter(p=>p.id!==me.id);
   shell(); route();
@@ -245,10 +266,10 @@ async function startApp(session){
 const isMgr = () => S.me && (S.me.role==='supervisor'||S.me.role==='admin');
 const isAdmin = () => S.me && S.me.role==='admin';
 
-const TITLES={my:'My KPIs',approvals:'Approvals',dashboard:'Dashboard',plan:'Weekly plan',setup:'Setup'};
+const TITLES={my:'My KPIs',myplan:'My plan',approvals:'Approvals',dashboard:'Dashboard',plan:'Weekly plan',plans:'Team plans',setup:'Setup'};
 function shell(){
-  const tabs=[['my','My KPIs']];
-  if(isMgr()) tabs.push(['approvals','Approvals'],['dashboard','Dashboard'],['plan','Weekly plan']);
+  const tabs=[['my','My KPIs'],['myplan','My plan']];
+  if(isMgr()) tabs.push(['approvals','Approvals'],['dashboard','Dashboard'],['plan','Weekly plan'],['plans','Team plans']);
   if(isAdmin()) tabs.push(['setup','Setup']);
   const ini=(S.me.full_name||'?').split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
   $('#root').innerHTML = `<div class="app">
@@ -283,20 +304,20 @@ async function refreshPending(){
 }
 function route(){
   let t=(location.hash||'#my').slice(1).split('/')[0];
-  const allowed=['my']; if(isMgr()) allowed.push('approvals','dashboard','plan'); if(isAdmin()) allowed.push('setup');
+  const allowed=['my','myplan']; if(isMgr()) allowed.push('approvals','dashboard','plan','plans'); if(isAdmin()) allowed.push('setup');
   if(!allowed.includes(t)) t='my';
   document.querySelectorAll('.side nav a').forEach(a=>a.classList.toggle('on',a.dataset.t===t)); 
-  ({my:viewMy, approvals:viewApprovals, dashboard:viewDashboard, plan:viewPlan, setup:viewSetup})[t]();
+  ({my:viewMy, myplan:viewMyPlan, approvals:viewApprovals, dashboard:viewDashboard, plan:viewPlan, plans:viewPlans, setup:viewSetup})[t]();
 }
 window.addEventListener('hashchange',()=>{ if(S.me) route(); });
 
 // ---------- shared: week ribbon (Sat–Thu) ----------
-function ribbon(week, id){
+function ribbon(week, id, ahead=0){
   const s=parse(week), today=ymd(new Date());
   const days=['Sat','Sun','Mon','Tue','Wed','Thu'].map((d,i)=>{const k=ymd(addD(s,i)); return `<span class="${k===today?'today':''}">${d} ${addD(s,i).getDate()}</span>`;}).join('');
   return `<div class="ribbon"><button class="navbtn" id="${id}Prev" aria-label="Previous week">‹</button>
     <div><div class="wk">Week of ${esc(wkLabel(week))}</div><div class="days">${days}</div></div>
-    <button class="navbtn" id="${id}Next" aria-label="Next week" ${week>=thisWeek()?'disabled':''}>›</button></div>`;
+    <button class="navbtn" id="${id}Next" aria-label="Next week" ${week>=ymd(addD(parse(thisWeek()),7*ahead))?'disabled':''}>›</button></div>`;
 }
 function bindRibbon(id, getW, setW, after){
   $(`#${id}Prev`).onclick=()=>{ setW(ymd(addD(parse(getW()),-7))); after(); };
@@ -327,7 +348,8 @@ async function viewMy(){
     const rowHtml = r => { const prev=before(r), w=periodWindow(r.period,thu), dv=dayVals(r), pc=r.measure==='percent';
       return `<tr><td><div class="code">${esc(r.kpi_code||'')} · ${esc(r.category||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>
           <div class="sub"><span class="tg">${esc(tgtText(r))}</span>${w&&!pc?` · <span class="prog" id="pg_${r.id}" data-prev="${prev}"><b>${num(prev+(Number(r.actual)||0))}</b>${r.period_target!=null?' of '+num(r.period_target):''} done in ${esc(w[2])}</span>`:''}</div></td>
-        <td><div class="dg">${DN.map((d,i)=>`<input type="number" min="0" ${pc?'max="100"':''} step="any" class="dv ${i===todayIdx?'td':''}" data-r="${r.id}" data-i="${i}" value="${esc(dv[i]??'')}" placeholder="${pc?'%':'0'}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d}">`).join('')}
+        <td><div class="dg">${DN.map((d,i)=>{ const ref=refOf(r,i); return `<div class="dc"><input type="number" min="0" ${pc?'max="100"':''} step="any" class="dv ${i===todayIdx?'td':''}" data-r="${r.id}" data-i="${i}" value="${esc(dv[i]??'')}" placeholder="${pc?'%':'0'}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d}">
+            <select class="lc ${ref?'set':''}" data-r="${r.id}" data-i="${i}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d} reference or location">${locOpts(locList(r),ref)}</select></div>`; }).join('')}
           <b class="tot" id="tot_${r.id}">${pc?(r.actual==null?'–':num(r.actual)+'%'):num(Number(r.actual)||0)}</b></div></td></tr>`; };
     const pctRows = rows.filter(r=>r.measure==='percent'); const recRows=rows.filter(r=>r.period_target==null&&r.measure!=='percent');
     const grpHtml = (k,title,list,open) => list.length?`<details class="grp" ${open?'open':''}><summary><span>${title} <span class="muted small">(${list.length})</span></span></summary><div class="in scroll"><table class="kt">
@@ -342,7 +364,7 @@ async function viewMy(){
       </div>
         ${st==='returned'?`<div class="note bad" style="margin-bottom:10px"><b>Returned by ${esc(sub.reviewed_by||'manager')}:</b> ${esc(sub.supervisor_remarks)}</div>`:''}
         ${st==='approved'?`<div class="note good" style="margin-bottom:10px">Approved by ${esc(sub.reviewed_by)}${sub.supervisor_remarks?': '+esc(sub.supervisor_remarks):''}</div>`:''}
-        <p class="small muted" style="margin:0 0 10px">Enter each day's number under Sat to Thu. The Week column adds them up. Percentage KPIs take the average of the days you fill.</p>
+        <p class="small muted" style="margin:0 0 10px">Enter each day's number under Sat to Thu and pick the client or location for that day below it. The Week column adds them up. Percentage KPIs take the average of the days you fill.</p>
         <form id="myF">
           ${GROUPS.map(([k,t,f],i)=>grpHtml(k,t,inGroup(f),i<2)).join('')}
           ${grpHtml('pc','Percentage KPIs (enter % achieved)',pctRows,true)}
@@ -357,6 +379,8 @@ async function viewMy(){
     document.querySelectorAll('tr[data-w]').forEach(tr=>tr.onclick=()=>{S.week=tr.dataset.w; viewMy();});
     const byId=Object.fromEntries(rows.map(r=>[r.id,r]));
     const daysOf = id => [...document.querySelectorAll(`input.dv[data-r="${id}"]`)].map(x=>x.value);
+    const refsOf = id => [...document.querySelectorAll(`select.lc[data-r="${id}"]`)].map(x=>x.value);
+    document.querySelectorAll('select.lc').forEach(sel=>sel.addEventListener('change',()=>sel.classList.toggle('set',!!sel.value)));
     const totalOf = (r,v) => { const n=v.filter(x=>x!=='').map(Number); return r.measure==='percent' ? (n.length? n.reduce((a,b)=>a+b,0)/n.length : null) : n.reduce((a,b)=>a+b,0); };
     document.querySelectorAll('input.dv').forEach(inp=>inp.addEventListener('input',()=>{ const r=byId[inp.dataset.r], t=totalOf(r,daysOf(r.id));
       $('#tot_'+r.id).textContent = r.measure==='percent' ? (t==null?'–':num(t)+'%') : num(t);
@@ -365,7 +389,7 @@ async function viewMy(){
       e.preventDefault(); const submit = e.submitter?.dataset.submit==='1';
       const vals={}; let bad=false;
       rows.forEach(r=>{ const v=daysOf(r.id); if(r.measure==='percent'&&v.some(x=>x!==''&&Number(x)>100)) bad=true;
-        vals[r.id] = v.map(x=>x===''?'':String(Number(x))); });
+        vals[r.id] = {v:v.map(x=>x===''?'':String(Number(x))), ref:refsOf(r.id)}; });
       if(bad) return toast('Percentage KPIs must be between 0 and 100.');
       e.submitter.disabled=true;
       const {error}=await sb.rpc('save_week',{p_week:S.week,p_values:vals,p_remarks:$('#rem').value.trim(),p_submit:submit});
@@ -413,7 +437,7 @@ async function openReview(sub, after){
 }
 
 // ---------- Dashboard ----------
-const D = { type:'month', year:new Date().getFullYear(), month:new Date().getMonth(), quarter:Math.floor(new Date().getMonth()/3), week:thisWeek(), group:'' };
+const D = { type:'month', year:new Date().getFullYear(), month:new Date().getMonth(), quarter:Math.floor(new Date().getMonth()/3), week:thisWeek(), group:'', q:'' };
 function period(){
   const y=D.year;
   if(D.type==='week') return [parse(D.week), thuOf(D.week), 'Week of '+wkLabel(D.week), 1];
@@ -432,6 +456,7 @@ async function viewDashboard(){
     ${D.type==='month'?`<label class="f" for="dMon">Month<select id="dMon">${MON.map((x,i)=>`<option value="${i}" ${D.month===i?'selected':''}>${x}</option>`).join('')}</select></label>`:''}
     ${D.type==='quarter'?`<label class="f" for="dQ">Quarter<select id="dQ">${[0,1,2,3].map(q=>`<option value="${q}" ${D.quarter===q?'selected':''}>Q${q+1}</option>`).join('')}</select></label>`:''}
     ${D.type==='week'?`<label class="f" for="dWk">Any day in the week<input type="date" id="dWk" value="${D.week}"></label>`:''}
+    <label class="f" for="dSearch" style="min-width:200px">Search CAM No. or name<input type="search" id="dSearch" placeholder="e.g. 1234 or Ahmed" value="${esc(D.q)}"></label>
     <label class="f" for="dGrp">Designation<select id="dGrp"><option value="">All</option>${groups.map(g=>`<option ${D.group===g?'selected':''}>${esc(g)}</option>`).join('')}</select></label>
     <button class="btn line" id="dExp" type="button">Export to Excel</button>
   </div><div id="dBody" class="empty">Loading…</div>`;
@@ -473,13 +498,15 @@ async function viewDashboard(){
     </div>
     <div class="cols">
       <div class="panel"><h2>Officer ranking</h2><div class="scroll"><table><thead><tr><th>#</th><th>Officer</th><th class="n">Weeks</th><th>Score</th><th>Rating</th></tr></thead><tbody>
-        ${rows.map((r,i)=>`<tr class="click" data-o="${r.p.id}"><td>${r.score!=null?i+1:'–'}</td><td><div class="kpiname">${esc(r.p.full_name)}</div><div class="sub">${r.p.employee_no?'CAM '+esc(r.p.employee_no)+' · ':''}${esc(r.p.designation||'')}</div></td><td class="n">${r.weeks}/${due}</td><td>${meter(r.score)}</td><td>${rpill(r.score)}</td></tr>`).join('')}
-      </tbody></table></div><p class="small muted">Select an officer for the full review.</p></div>
+        ${rows.map((r,i)=>`<tr class="click" data-o="${r.p.id}" data-s="${esc(((r.p.employee_no||'')+' '+(r.p.full_name||'')+' '+(r.p.email||'')).toLowerCase())}"><td>${r.score!=null?i+1:'–'}</td><td><div class="kpiname">${esc(r.p.full_name)}</div><div class="sub">${r.p.employee_no?'CAM '+esc(r.p.employee_no)+' · ':''}${esc(r.p.designation||'')}</div></td><td class="n">${r.weeks}/${due}</td><td>${meter(r.score)}</td><td>${rpill(r.score)}</td></tr>`).join('')}
+      </tbody></table></div><p class="small muted" id="dNo" hidden>No officer matches your search.</p><p class="small muted">Select an officer for the full review.</p></div>
       <div class="stack">
         <div class="panel chart"><h2>Team score by month, ${D.year}</h2>${bars(mon, MON)}</div>
         <div class="panel"><h2>Weakest KPIs, ${esc(label)}</h2>${kList.length?`<table><tbody>${kList.slice(0,12).map(k=>`<tr><td><div class="code">${esc(k.code||'')}</div>${esc(k.n)}<div class="sub">${k.m==='percent'?'average %':num(k.a)+' of '+num(k.t)}</div></td><td style="width:42%">${meter(k.ach)}</td></tr>`).join('')}</tbody></table><p class="small muted">${kList.length} KPIs in this period; the 12 lowest are shown. Export to Excel for all.</p>`:'<p class="muted small">No submitted weeks in this period.</p>'}</div>
       </div></div>`;
     document.querySelectorAll('tr[data-o]').forEach(tr=>tr.onclick=()=>officerDetail(team.find(p=>p.id===tr.dataset.o)));
+    const filt=()=>{ const q=D.q.trim().toLowerCase(); let n=0; document.querySelectorAll('tr[data-o]').forEach(tr=>{ const ok=!q||tr.dataset.s.includes(q); tr.hidden=!ok; if(ok) n++; }); $('#dNo').hidden=n>0; };
+    $('#dSearch').oninput=e=>{ D.q=e.target.value; filt(); }; filt();
   }catch(x){ err(x); }
 }
 function bars(vals, labels){
@@ -529,7 +556,7 @@ async function exportExcel(){
     const ids=c.team.map(p=>p.id); const name=Object.fromEntries(c.team.map(p=>[p.id,p]));
     const [subs,kp]=await Promise.all([
       fetchAll(()=>sb.from('week_submissions').select('*').gte('week_start',c.F).lte('week_start',c.T).neq('status','draft')),
-      fetchAll(()=>sb.from('week_kpis').select('officer_id,week_start,kpi_code,kpi_name,category,frequency,period,measure,direction,period_target,target,actual,daily').gte('week_start',c.F).lte('week_start',c.T))]);
+      fetchAll(()=>sb.from('week_kpis').select('officer_id,week_start,kpi_code,kpi_name,category,frequency,period,measure,direction,period_target,target,actual,daily,daily_ref').gte('week_start',c.F).lte('week_start',c.T))]);
     const subMap=Object.fromEntries(subs.filter(s=>ids.includes(s.officer_id)).map(s=>[s.officer_id+'|'+s.week_start,s]));
     const rows=kp.filter(k=>subMap[k.officer_id+'|'+k.week_start]).map(k=>{ const p=name[k.officer_id]||{}, s=subMap[k.officer_id+'|'+k.week_start];
       const wk=(k.period==='day'||k.period==='week'||k.measure==='percent')&&k.target!=null;
@@ -537,12 +564,13 @@ async function exportExcel(){
         'KPI ID':k.kpi_code, KPI:k.kpi_name, Category:k.category, Frequency:k.frequency, 'Target per period':k.measure==='percent'?'100%':(k.period_target??'Record only'),
         'Weekly target':k.target==null?'':Math.round(k.target*100)/100,
         ...Object.fromEntries(DAYN.map((d,i)=>[d+' '+shortD(ymd(addD(parse(k.week_start),i))).split(' ')[0], Array.isArray(k.daily)&&k.daily[i]!==''&&k.daily[i]!=null?Number(k.daily[i]):''])),
+        'Reference/Location':DAYN.map((d,i)=>refOf(k,i)?d+': '+refOf(k,i):'').filter(Boolean).join('; '),
         'Done this week':Number(k.actual)||0, 'Weekly achievement %':wk?Math.round(ach(k.direction,k.target,k.actual,k.measure)*100):'',
         'Week score %':s.score!=null?Math.round(s.score*100):'', Status:s.status, 'Reviewed by':s.reviewed_by||'', 'Manager remarks':s.supervisor_remarks||'', 'Officer remarks':s.officer_remarks||''}; })
       .sort((a,b)=>(a.Officer||'').localeCompare(b.Officer||'')||a['Week start (Sat)'].localeCompare(b['Week start (Sat)'])||(a['KPI ID']||'').localeCompare(b['KPI ID']||''));
     if(!rows.length) return toast('No submitted weeks in this period to export.');
     const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(rows);
-    ws['!cols']=[8,24,22,20,12,12,11,48,26,14,14,10,7,7,7,7,7,7,10,12,10,12,18,30,30].map(w=>({wch:w}));
+    ws['!cols']=[8,24,22,20,12,12,11,48,26,14,14,10,7,7,7,7,7,7,30,10,12,10,12,18,30,30].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb, ws, 'KPI data');
     XLSX.writeFile(wb, `AMHEC_QHSE_KPI_${c.label.replace(/\W+/g,'_')}.xlsx`);
   }catch(x){ err(x); }
@@ -554,7 +582,7 @@ async function viewPlan(){
   const m=$('#main');
   if(!S.team.length){ m.innerHTML='<h1>Weekly plan</h1><div class="empty"><b>No officers in your team yet</b>QHSE sets which officers report to you.</div>'; return; }
   if(!P.officer) P.officer=S.team[0].id;
-  m.innerHTML=`<h1>Weekly plan</h1><p class="lead">See one officer's full week, Saturday to Thursday, KPI by KPI. KPIs are created automatically from the designation's assignments in Setup; change a target or add a KPI here only for this one week.</p>
+  m.innerHTML=`<h1>Weekly plan</h1><p class="lead">See one officer's full week, Saturday to Thursday, KPI by KPI. Click a day (Sat to Thu) to open that day for this officer or the whole team. KPIs are created automatically from the designation's assignments in Setup; change a target or add a KPI here only for this one week.</p>
   ${ribbon(P.week,'pl')}
   <div class="panel row" style="margin-bottom:16px">
     <label class="f" for="pOff" style="min-width:260px;flex:1">Officer<select id="pOff">${S.team.map(p=>`<option value="${p.id}" ${P.officer===p.id?'selected':''}>${esc(p.full_name)} – ${esc(p.designation||'')}</option>`).join('')}</select></label>
@@ -568,12 +596,13 @@ async function viewPlan(){
       sb.from('week_submissions').select('*').eq('officer_id',P.officer).eq('week_start',P.week).maybeSingle(),
       sb.from('kpi_library').select('*').eq('active',true).order('code')]);
     const st=sub?.status||'draft', locked=st==='approved';
+    setTimeout(()=>document.querySelectorAll('#pBody .dbtn').forEach(bt=>bt.onclick=()=>openDay(P.week,+bt.dataset.day,P.officer,'one')));
     const used=new Set(rows.map(r=>r.kpi_id)); const free=lib.filter(k=>!used.has(k.id));
     const b=$('#pBody'); b.className='panel';
     b.innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">${rows.length} KPIs this week</h2>${spill(st)}</div>
       ${st==='submitted'?'<div class="note warn" style="margin-bottom:10px">The officer has already submitted this week. Changing targets updates the score.</div>':''}
       ${locked?'<div class="note good" style="margin-bottom:10px">This week is approved and locked.</div>':''}
-      ${rows.length?`<div class="scroll"><table><thead><tr><th>KPI</th><th>Frequency</th><th class="n">Target per period</th><th>${dayHeadRO(P.week)}</th><th></th></tr></thead><tbody>
+      ${rows.length?`<div class="scroll"><table><thead><tr><th>KPI</th><th>Frequency</th><th class="n">Target per period</th><th>${dayHeadBtn(P.week)}</th><th></th></tr></thead><tbody>
       ${rows.map(r=>`<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div></td><td class="small">${esc(r.frequency||'')}</td>
         <td class="n">${r.measure==='percent'?'100%':`<input type="number" min="0" step="any" id="t_${r.id}" value="${r.period_target??''}" placeholder="none" style="width:96px" ${locked?'disabled':''} aria-label="Target per period">`}</td>
         <td>${dayRO(r)}</td>
@@ -601,6 +630,137 @@ async function viewPlan(){
   }catch(x){ err(x); }
 }
 function confirmInline(btn,txt){ if(btn.dataset.armed){ return true; } btn.dataset.armed='1'; const o=btn.textContent; btn.textContent=txt; setTimeout(()=>{btn.textContent=o; delete btn.dataset.armed;},3500); return false; }
+
+// ---------- My plan (officer fills next week's plan) ----------
+const PL = { week:null };
+async function viewMyPlan(){
+  if(!PL.week) PL.week=ymd(addD(parse(thisWeek()),7));
+  const m=$('#main'); m.innerHTML=`<h1>My plan</h1><p class="lead">Plan your week: where you will be each day (Saturday to Thursday) and what you will do there. Your manager sees all plans together in Team plans.</p>${ribbon(PL.week,'mp',2)}<div id="mpBody" class="empty">Loading your plan…</div>`;
+  bindRibbon('mp',()=>PL.week,w=>PL.week=w,viewMyPlan);
+  try{
+    const prevW=ymd(addD(parse(PL.week),-7));
+    const [{data,error},{data:prev,error:e2}]=await Promise.all([
+      sb.from('week_plans').select('*').eq('officer_id',S.me.id).eq('week_start',PL.week),
+      sb.from('week_plans').select('*').eq('officer_id',S.me.id).eq('week_start',prevW)]);
+    if(error||e2) throw (error||e2);
+    const by=Object.fromEntries((data||[]).map(x=>[x.day,x])); const list=(S.lists||{}).sites||[];
+    const last=(data||[]).map(x=>x.updated_at).sort().pop();
+    const b=$('#mpBody'); b.className='panel';
+    b.innerHTML=`<form id="mpF"><div class="scroll"><table class="mp"><thead><tr><th style="width:90px">Day</th><th style="width:220px">Location / client</th><th>What you will do</th></tr></thead><tbody>
+      ${DAYN.map((d,i)=>`<tr><td><b>${d}</b><div class="sub">${esc(shortD(ymd(addD(parse(PL.week),i))))}</div></td>
+        <td><select id="mpL${i}" aria-label="${d} location">${locOpts(list,by[i]?.location||'','Choose location')}</select></td>
+        <td><textarea id="mpA${i}" style="min-height:46px" placeholder="e.g. Rig move audit, toolbox talk with crew" aria-label="${d} activity">${esc(by[i]?.activity||'')}</textarea></td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="row" style="margin-top:12px"><button class="btn" type="submit">Save plan</button>
+        ${(prev||[]).length?'<button class="btn line" type="button" id="mpCopy">Copy last week\'s plan</button>':''}
+        <span class="small muted">${last?'Last saved '+new Date(last).toLocaleString():'Not saved yet for this week.'}</span></div></form>`;
+    $('#mpCopy')&&($('#mpCopy').onclick=()=>{ (prev||[]).forEach(x=>{ if($('#mpL'+x.day)){ const sel=$('#mpL'+x.day);
+      if(x.location&&![...sel.options].some(o=>o.value===x.location)) sel.add(new Option(x.location,x.location));
+      sel.value=x.location||''; $('#mpA'+x.day).value=x.activity||''; } }); toast('Copied. Change what you need, then Save plan.'); });
+    $('#mpF').onsubmit=async e=>{ e.preventDefault(); const bt=e.submitter; bt.disabled=true;
+      const rows=DAYN.map((d,i)=>({officer_id:S.me.id, week_start:PL.week, day:i, location:$('#mpL'+i).value||null, activity:$('#mpA'+i).value.trim()||null, updated_at:new Date().toISOString()}));
+      const {error}=await sb.from('week_plans').upsert(rows,{onConflict:'officer_id,week_start,day'});
+      bt.disabled=false; if(error) return err(error); toast('Plan saved.'); viewMyPlan(); };
+  }catch(x){ err(x); $('#mpBody').innerHTML='<b>Could not load your plan</b>Check your connection and refresh the page.'; }
+}
+
+// ---------- Team plans (manager / admin report) ----------
+const TP = { week:null, q:'' };
+const planPeople = () => [S.me, ...S.team];
+async function viewPlans(){
+  if(!TP.week) TP.week=ymd(addD(parse(thisWeek()),7));
+  const m=$('#main'); m.innerHTML=`<h1>Team plans</h1><p class="lead">Where everyone plans to be each day and what they will do. Officers fill this in under My plan. Click a day to open that day for the whole team.</p>${ribbon(TP.week,'tp',2)}
+    <div class="panel row" style="margin-bottom:16px"><label class="f" for="tpQ" style="min-width:220px;flex:1">Search CAM No. or name<input type="search" id="tpQ" placeholder="e.g. 1234 or Ahmed" value="${esc(TP.q)}"></label>
+    <button class="btn" id="tpX" type="button">Download Excel</button></div><div id="tpBody" class="empty">Loading…</div>`;
+  bindRibbon('tp',()=>TP.week,w=>TP.week=w,viewPlans);
+  try{
+    const ppl=planPeople(); const ids=new Set(ppl.map(p=>p.id));
+    const pl=(await fetchAll(()=>sb.from('week_plans').select('*').eq('week_start',TP.week))).filter(x=>ids.has(x.officer_id));
+    const map={}; pl.forEach(x=>{ (map[x.officer_id]||(map[x.officer_id]={}))[x.day]=x; });
+    const has=p=>Object.values(map[p.id]||{}).some(x=>x.location||x.activity);
+    const missing=ppl.filter(p=>!has(p));
+    const days=DAYN.map((d,i)=>ymd(addD(parse(TP.week),i)));
+    const b=$('#tpBody'); b.className='stack';
+    b.innerHTML=`<div class="tiles"><div class="tile"><span class="k">Plans filled</span><span class="v">${ppl.length-missing.length}/${ppl.length}</span><span class="s">${esc(wkLabel(TP.week))}</span></div></div>
+      ${missing.length?`<div class="note warn"><b>Not filled yet:</b> ${missing.map(p=>esc(p.full_name)).join(', ')}</div>`:''}
+      <div class="panel"><div class="scroll"><table class="pt"><thead><tr><th>Officer</th>${DAYN.map((d,i)=>`<th><button type="button" class="dbtn" data-day="${i}">${d} ${parse(days[i]).getDate()} ${MON[parse(days[i]).getMonth()]}</button></th>`).join('')}</tr></thead><tbody>
+      ${ppl.map(p=>`<tr data-s="${esc(((p.employee_no||'')+' '+(p.full_name||'')).toLowerCase())}"><td><div class="kpiname">${esc(p.full_name)}</div><div class="sub">${p.employee_no?'CAM '+esc(p.employee_no)+' · ':''}${esc(p.designation||'')}</div></td>
+        ${DAYN.map((d,i)=>{ const x=(map[p.id]||{})[i]; return `<td class="pd">${x&&(x.location||x.activity)?`${x.location?`<b>${esc(x.location)}</b>`:''}<div class="sub">${esc(x.activity||'')}</div>`:'<span class="muted">–</span>'}</td>`; }).join('')}</tr>`).join('')}
+      </tbody></table></div><p class="small muted" id="tpNo" hidden>No one matches your search.</p></div>`;
+    b.querySelectorAll('.dbtn').forEach(bt=>bt.onclick=()=>openDay(TP.week,+bt.dataset.day,null,'team'));
+    const filt=()=>{ const q=TP.q.trim().toLowerCase(); let n=0; b.querySelectorAll('tr[data-s]').forEach(tr=>{ const ok=!q||tr.dataset.s.includes(q); tr.hidden=!ok; if(ok) n++; }); $('#tpNo').hidden=n>0; };
+    $('#tpQ').oninput=e=>{ TP.q=e.target.value; filt(); }; filt();
+    $('#tpX').onclick=()=>{
+      const q=TP.q.trim().toLowerCase(); const sel=ppl.filter(p=>!q||((p.employee_no||'')+' '+(p.full_name||'')).toLowerCase().includes(q));
+      const mgr=e=>{ const x=[S.me,...S.team].find(p=>p.email===e); return x?x.full_name:(e||''); };
+      const grid=sel.map(p=>({'CAM No':p.employee_no||'', Name:p.full_name, Designation:p.designation||'', Function:p.function||'', Manager:mgr(p.supervisor_email),
+        ...Object.fromEntries(DAYN.map((d,i)=>{ const x=(map[p.id]||{})[i]; return [`${d} ${shortD(days[i])}`, x?[x.location,x.activity].filter(Boolean).join(' – '):'']; }))}));
+      const list=[]; sel.forEach(p=>DAYN.forEach((d,i)=>{ const x=(map[p.id]||{})[i]; list.push({'CAM No':p.employee_no||'', Name:p.full_name, Designation:p.designation||'', Date:days[i], Day:d, 'Location / client':x?.location||'', Activity:x?.activity||''}); }));
+      const wb=XLSX.utils.book_new(); const w1=XLSX.utils.json_to_sheet(grid); w1['!cols']=[8,24,22,20,20,28,28,28,28,28,28].map(w=>({wch:w}));
+      const w2=XLSX.utils.json_to_sheet(list); w2['!cols']=[8,24,22,11,6,20,50].map(w=>({wch:w}));
+      XLSX.utils.book_append_sheet(wb,w1,'Week plan'); XLSX.utils.book_append_sheet(wb,w2,'By day');
+      XLSX.writeFile(wb,`AMHEC_QHSE_Plan_${TP.week}.xlsx`); };
+  }catch(x){ err(x); }
+}
+
+// ---------- Day view (one officer or whole team) ----------
+async function openDay(week, i, officerId, mode){
+  const ppl=planPeople(); const byId=Object.fromEntries(ppl.map(p=>[p.id,p]));
+  const md=document.createElement('div'); md.className='modal'; document.body.appendChild(md);
+  const close=()=>md.remove(); md.addEventListener('click',e=>{if(e.target===md) close();});
+  const render=async()=>{
+    const date=ymd(addD(parse(week),i)), label=`${DAYN[i]} ${shortD(date)} ${parse(date).getFullYear()}`;
+    md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Day view">
+      <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${esc(label)}</h2><div class="muted">${mode==='one'?esc(byId[officerId]?.full_name||''):'Whole team'} · Week of ${esc(wkLabel(week))}</div></div>
+      <div class="row"><div class="seg" role="group" aria-label="Show">${officerId?`<button type="button" data-m="one" class="${mode==='one'?'on':''}">One officer</button>`:''}<button type="button" data-m="team" class="${mode==='team'?'on':''}">Whole team</button></div>
+      <button class="btn line sm" data-nav="-1" ${i===0?'disabled':''} aria-label="Previous day">‹</button><button class="btn line sm" data-nav="1" ${i===5?'disabled':''} aria-label="Next day">›</button><button class="btn line sm" id="dyClose">Close</button></div></div>
+      <div id="dyBody" class="empty">Loading…</div></div>`;
+    md.querySelector('#dyClose').onclick=close;
+    md.querySelectorAll('[data-m]').forEach(bt=>bt.onclick=()=>{ mode=bt.dataset.m; render(); });
+    md.querySelectorAll('[data-nav]').forEach(bt=>bt.onclick=()=>{ i+=Number(bt.dataset.nav); render(); });
+    const body=md.querySelector('#dyBody');
+    try{
+      if(mode==='one'){
+        const [{data:rows,error},{data:pl,error:e2}]=await Promise.all([
+          sb.from('week_kpis').select('*').eq('officer_id',officerId).eq('week_start',week).order('kpi_code'),
+          sb.from('week_plans').select('*').eq('officer_id',officerId).eq('week_start',week).eq('day',i).maybeSingle()]);
+        if(error||e2) throw (error||e2);
+        const done=rows.filter(r=>(dayVal(r,i)!=null&&Number(r.daily[i])!==0)||refOf(r,i));
+        const locs=[...new Set(rows.map(r=>refOf(r,i)).filter(Boolean))];
+        body.className='stack';
+        body.innerHTML=`<div class="note"><b>Plan:</b> ${pl&&(pl.location||pl.activity)?`${pl.location?'<b>'+esc(pl.location)+'</b>':''}${pl.location&&pl.activity?' – ':''}${esc(pl.activity||'')}`:'No plan entered for this day.'}</div>
+          ${locs.length?`<div class="chips"><span class="small muted">Locations reported:</span>${locs.map(l=>`<span class="chip">${esc(l)}</span>`).join('')}</div>`:''}
+          ${done.length?`<div class="scroll"><table><thead><tr><th>KPI</th><th class="n">Done</th><th>Reference / location</th></tr></thead><tbody>
+            ${done.map(r=>`<tr><td><div class="code">${esc(r.kpi_code||'')}</div>${esc(r.kpi_name)}</td><td class="n"><b>${dayVal(r,i)!=null?num(r.daily[i])+(r.measure==='percent'?'%':''):'–'}</b></td><td>${esc(refOf(r,i)||'–')}</td></tr>`).join('')}
+            </tbody></table></div>`:'<div class="empty"><b>Nothing entered for this day</b>The officer has not filled any KPI for this day yet.</div>'}
+          <p class="small muted" style="margin:0">${rows.length-done.length} of ${rows.length} KPIs have nothing entered for this day.</p>`;
+      } else {
+        const ids=ppl.map(p=>p.id);
+        const [kp,pl]=await Promise.all([
+          fetchAll(()=>sb.from('week_kpis').select('officer_id,kpi_code,kpi_name,measure,daily,daily_ref').eq('week_start',week).in('officer_id',ids)),
+          fetchAll(()=>sb.from('week_plans').select('*').eq('week_start',week).eq('day',i))]);
+        const plan=Object.fromEntries(pl.map(x=>[x.officer_id,x]));
+        const rows=ppl.map(p=>{ const k=kp.filter(r=>r.officer_id===p.id); const d=k.filter(r=>dayVal(r,i)!=null&&Number(r.daily[i])!==0);
+          return {p, plan:plan[p.id], n:d.length, tot:d.filter(r=>r.measure!=='percent').reduce((a,r)=>a+Number(r.daily[i]),0), locs:[...new Set(k.map(r=>refOf(r,i)).filter(Boolean))], kpis:k.length}; });
+        body.className='stack';
+        body.innerHTML=`<div class="scroll"><table><thead><tr><th>Officer</th><th>Plan for the day</th><th>Locations reported</th><th class="n">KPIs done</th><th></th></tr></thead><tbody>
+          ${rows.map(r=>`<tr><td><div class="kpiname">${esc(r.p.full_name)}</div><div class="sub">${r.p.employee_no?'CAM '+esc(r.p.employee_no)+' · ':''}${esc(r.p.designation||'')}</div></td>
+            <td>${r.plan&&(r.plan.location||r.plan.activity)?`${r.plan.location?'<b>'+esc(r.plan.location)+'</b>':''}<div class="sub">${esc(r.plan.activity||'')}</div>`:'<span class="muted">No plan</span>'}</td>
+            <td>${r.locs.length?esc(r.locs.join(', ')):'<span class="muted">–</span>'}</td>
+            <td class="n">${r.kpis?`<b>${r.n}</b> of ${r.kpis}${r.tot?`<div class="sub">${num(r.tot)} entries</div>`:''}`:'<span class="muted">No KPIs yet</span>'}</td>
+            <td><button class="btn line sm" data-o="${r.p.id}">Open</button></td></tr>`).join('')}
+          </tbody></table></div>
+          <div class="row"><button class="btn line sm" id="dyX" type="button">Download this day</button></div>`;
+        body.querySelectorAll('[data-o]').forEach(bt=>bt.onclick=()=>{ officerId=bt.dataset.o; mode='one'; render(); });
+        body.querySelector('#dyX').onclick=()=>{ const wb=XLSX.utils.book_new();
+          const ws=XLSX.utils.json_to_sheet(rows.map(r=>({'CAM No':r.p.employee_no||'', Name:r.p.full_name, Designation:r.p.designation||'', Date:date, Day:DAYN[i],
+            'Planned location':r.plan?.location||'', 'Planned activity':r.plan?.activity||'', 'Locations reported':r.locs.join(', '), 'KPIs done':r.n, 'KPIs this week':r.kpis})));
+          ws['!cols']=[8,24,22,11,6,18,40,26,10,12].map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb,ws,'Day'); XLSX.writeFile(wb,`AMHEC_QHSE_Day_${date}.xlsx`); };
+      }
+    }catch(x){ err(x); body.innerHTML='<b>Could not load this day</b>Check your connection and try again.'; }
+  };
+  render();
+}
 
 // ---------- Setup (admin) ----------
 let setupTab='people';
@@ -770,7 +930,7 @@ async function setupRules(){
         const t=s.m==='percent'?100:(s.t===''?null:Number(s.t));
         const same=r && !!r.excluded===s.ex && (r.target==null?null:Number(r.target))===t && (r.measure||k.measure)===s.m;
         if(r && (!want || !same)){ const {error}=await sb.from('assignment_rules').update({effective_to:endPrev, active: want}).eq('id',r.id); if(error) return err(error); if(!want) removed++; }
-        if(want && !same){ const {error}=await sb.from('assignment_rules').insert({scope_type:type,scope_value:who,scope_function:type==='designation'&&fn?fn:null,kpi_id:k.id,target:t,weight:1,excluded:s.ex,measure:s.m===k.measure?null:s.m,effective_from:from}); if(error) return err(error); added++; } }
+        if(want && !same){ const {error}=await sb.from('assignment_rules').insert({scope_type:type,scope_value:who,scope_function:type==='designation'&&fn?fn:null,kpi_id:k.id,target:t,weight:1,excluded:s.ex,measure:s.m===k.measure?null:s.m,effective_from:from,loc_list:r?.loc_list||null}); if(error) return err(error); added++; } }
       toast(added||removed?`Saved: ${added} added or changed, ${removed} removed.`:'No changes to save.'); draw(); };
   };
   await draw();
