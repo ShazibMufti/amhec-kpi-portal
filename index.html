@@ -145,6 +145,10 @@ details.grp>.in{padding:0 14px 12px}
 .seg button{border:0;background:var(--surface);padding:7px 14px;cursor:pointer;font-weight:600;color:var(--muted)}
 .seg button.on{background:var(--brand);color:#fff}
 table.mp td{vertical-align:top}
+.pk{display:grid;grid-template-columns:minmax(0,1fr) 150px 34px;gap:6px;align-items:center;margin-bottom:6px}
+.pk .tgt{font-size:12.5px;color:var(--brand);font-weight:600}
+.pk .x{height:34px;border:1px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer;font-size:18px;color:var(--muted)}
+.pk .x[disabled]{opacity:.35;cursor:default}
 .dg input.td{border-color:var(--amber);box-shadow:0 0 0 2px rgba(245,158,11,.18)}
 .dg.dh span{font-size:12px;font-weight:600;color:var(--muted);text-align:center}
 .dg.dh span.td{color:#92400e;background:#fef3c7;border-radius:6px;padding:2px 0}
@@ -153,7 +157,7 @@ table.mp td{vertical-align:top}
 table.kt td:first-child{min-width:240px}
 .prog b{color:var(--ink)}
 @media (max-width:640px){.dg{grid-template-columns:repeat(6,minmax(0,1fr)) 38px;gap:3px} .dg input{width:100%;padding:7px 1px} .dg select.lc{font-size:10px;padding:3px 0} .dg.dh span{font-size:11px} details.grp>.in{padding:0 10px 10px}}
-@media (max-width:640px){table.mp thead{display:none} table.mp tr{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)} table.mp td{border:0;padding:0} table.mp td:first-child{display:flex;gap:8px;align-items:baseline}}
+@media (max-width:640px){table.mp thead{display:none} table.mp tr{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)} table.mp td{border:0;padding:0} table.mp td:first-child{display:flex;gap:8px;align-items:baseline} .pk{grid-template-columns:minmax(0,1fr) 34px} .pk .tgt{grid-column:1;grid-row:2}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -223,7 +227,7 @@ const rpill = s => { const [t,c]=rating(s); return `<span class="pill ${c}">${t}
 const spill = st => `<span class="pill s-${esc(st)}">${({draft:'Not submitted',submitted:'Waiting approval',approved:'Approved',returned:'Returned'})[st]||esc(st)}</span>`;
 const DAYN=['Sat','Sun','Mon','Tue','Wed','Thu'];
 const refOf = (r,i) => Array.isArray(r.daily_ref) ? (r.daily_ref[i]||'') : '';
-const locList = r => (S.lists||{})[r.loc_list||'sites'] || (S.lists||{}).sites || [];
+const locList = () => (S.lists||{}).sites || [];
 const locOpts = (list,cur,blank='Location') => `<option value="">${blank}</option>`+[...new Set([...(cur&&!list.includes(cur)?[cur]:[]),...list])].map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('');
 const dayVal = (r,i) => Array.isArray(r.daily)&&r.daily[i]!==''&&r.daily[i]!=null ? r.daily[i] : null;
 const dayRO = r => `<div class="dg ro">${DAYN.map((d,i)=>{ const ref=refOf(r,i); return `<span title="${d}${ref?': '+esc(ref):''}">${dayVal(r,i)!=null?num(r.daily[i]):'·'}${ref?`<small>${esc(ref)}</small>`:''}</span>`; }).join('')}<b class="tot">${r.actual==null?'–':num(r.actual)+(r.measure==='percent'?'%':'')}</b></div>`;
@@ -635,32 +639,51 @@ function confirmInline(btn,txt){ if(btn.dataset.armed){ return true; } btn.datas
 const PL = { week:null };
 async function viewMyPlan(){
   if(!PL.week) PL.week=ymd(addD(parse(thisWeek()),7));
-  const m=$('#main'); m.innerHTML=`<h1>My plan</h1><p class="lead">Plan your week: where you will be each day (Saturday to Thursday) and what you will do there. Your manager sees all plans together in Team plans.</p>${ribbon(PL.week,'mp',2)}<div id="mpBody" class="empty">Loading your plan…</div>`;
+  const m=$('#main'); m.innerHTML=`<h1>My plan</h1><p class="lead">Plan your week: where you will be each day (Saturday to Thursday) and which of your KPIs you will do there. Pick from the lists; the target shows next to each KPI. Your manager sees all plans together in Team plans.</p>${ribbon(PL.week,'mp',2)}<div id="mpBody" class="empty">Loading your plan…</div>`;
   bindRibbon('mp',()=>PL.week,w=>PL.week=w,viewMyPlan);
   try{
+    const {error:e0}=await sb.rpc('ensure_week_plan',{p_officer:S.me.id,p_week:PL.week}); if(e0) throw e0;
     const prevW=ymd(addD(parse(PL.week),-7));
-    const [{data,error},{data:prev,error:e2}]=await Promise.all([
+    const [{data,error},{data:prev,error:e2},{data:kp,error:e3}]=await Promise.all([
       sb.from('week_plans').select('*').eq('officer_id',S.me.id).eq('week_start',PL.week),
-      sb.from('week_plans').select('*').eq('officer_id',S.me.id).eq('week_start',prevW)]);
-    if(error||e2) throw (error||e2);
-    const by=Object.fromEntries((data||[]).map(x=>[x.day,x])); const list=(S.lists||{}).sites||[];
-    const last=(data||[]).map(x=>x.updated_at).sort().pop();
+      sb.from('week_plans').select('*').eq('officer_id',S.me.id).eq('week_start',prevW),
+      sb.from('week_kpis').select('id,kpi_id,kpi_code,kpi_name,period,measure,period_target,target').eq('officer_id',S.me.id).eq('week_start',PL.week).order('kpi_code')]);
+    if(error||e2||e3) throw (error||e2||e3);
+    const kpis=kp||[]; const kById=Object.fromEntries(kpis.map(k=>[k.kpi_id,k]));
+    const find=it=>kById[it.kpi_id]||kpis.find(k=>k.kpi_code===it.code&&k.kpi_name===it.name);
+    const toState=x=>({location:x?.location||'', items:(Array.isArray(x?.items)?x.items:[]).map(it=>{ const k=find(it); return k?k.kpi_id:null; }).filter(Boolean), note:x&&!Array.isArray(x.items)?(x.activity||''):''});
+    const by=Object.fromEntries((data||[]).map(x=>[x.day,x]));
+    const st=DAYN.map((d,i)=>toState(by[i])); st.forEach(s=>{ if(!s.items.length) s.items=['']; });
+    const list=(S.lists||{}).sites||[]; const last=(data||[]).map(x=>x.updated_at).filter(Boolean).sort().pop();
     const b=$('#mpBody'); b.className='panel';
-    b.innerHTML=`<form id="mpF"><div class="scroll"><table class="mp"><thead><tr><th style="width:90px">Day</th><th style="width:220px">Location / client</th><th>What you will do</th></tr></thead><tbody>
+    const kOpts=cur=>`<option value="">Choose KPI</option>`+kpis.map(k=>`<option value="${k.kpi_id}" ${k.kpi_id===cur?'selected':''}>${esc(k.kpi_code||'')} – ${esc(k.kpi_name)}</option>`).join('');
+    const draw=()=>{
+      b.innerHTML=`${kpis.length?'':'<div class="note warn" style="margin-bottom:10px">No KPIs are assigned to you for this week yet, so the KPI list is empty. Ask QHSE to check your designation.</div>'}
+      <form id="mpF"><div class="scroll"><table class="mp"><thead><tr><th style="width:90px">Day</th><th style="width:200px">Location / client</th><th>KPI you will do <span class="muted small">and its target</span></th></tr></thead><tbody>
       ${DAYN.map((d,i)=>`<tr><td><b>${d}</b><div class="sub">${esc(shortD(ymd(addD(parse(PL.week),i))))}</div></td>
-        <td><select id="mpL${i}" aria-label="${d} location">${locOpts(list,by[i]?.location||'','Choose location')}</select></td>
-        <td><textarea id="mpA${i}" style="min-height:46px" placeholder="e.g. Rig move audit, toolbox talk with crew" aria-label="${d} activity">${esc(by[i]?.activity||'')}</textarea></td></tr>`).join('')}
+        <td><select data-l="${i}" aria-label="${d} location">${locOpts(list,st[i].location,'Choose location')}</select></td>
+        <td>${st[i].items.map((kid,j)=>{ const k=kById[kid]; return `<div class="pk"><select data-k="${i}" data-j="${j}" aria-label="${d} KPI ${j+1}">${kOpts(kid)}</select>
+            <span class="tgt">${k?'Target: '+esc(tgtText(k)):'<span class="muted">Target</span>'}</span>
+            <button type="button" class="x" data-rm="${i}" data-j="${j}" aria-label="Remove KPI" ${st[i].items.length<2&&!kid?'disabled':''}>×</button></div>`; }).join('')}
+          <button type="button" class="btn line sm" data-add="${i}">+ Add KPI</button>
+          ${st[i].note?`<div class="sub" style="margin-top:6px">Earlier note: ${esc(st[i].note)}</div>`:''}</td></tr>`).join('')}
       </tbody></table></div>
       <div class="row" style="margin-top:12px"><button class="btn" type="submit">Save plan</button>
         ${(prev||[]).length?'<button class="btn line" type="button" id="mpCopy">Copy last week\'s plan</button>':''}
         <span class="small muted">${last?'Last saved '+new Date(last).toLocaleString():'Not saved yet for this week.'}</span></div></form>`;
-    $('#mpCopy')&&($('#mpCopy').onclick=()=>{ (prev||[]).forEach(x=>{ if($('#mpL'+x.day)){ const sel=$('#mpL'+x.day);
-      if(x.location&&![...sel.options].some(o=>o.value===x.location)) sel.add(new Option(x.location,x.location));
-      sel.value=x.location||''; $('#mpA'+x.day).value=x.activity||''; } }); toast('Copied. Change what you need, then Save plan.'); });
-    $('#mpF').onsubmit=async e=>{ e.preventDefault(); const bt=e.submitter; bt.disabled=true;
-      const rows=DAYN.map((d,i)=>({officer_id:S.me.id, week_start:PL.week, day:i, location:$('#mpL'+i).value||null, activity:$('#mpA'+i).value.trim()||null, updated_at:new Date().toISOString()}));
-      const {error}=await sb.from('week_plans').upsert(rows,{onConflict:'officer_id,week_start,day'});
-      bt.disabled=false; if(error) return err(error); toast('Plan saved.'); viewMyPlan(); };
+      b.querySelectorAll('[data-l]').forEach(s=>s.onchange=()=>{ st[+s.dataset.l].location=s.value; });
+      b.querySelectorAll('[data-k]').forEach(s=>s.onchange=()=>{ st[+s.dataset.k].items[+s.dataset.j]=s.value; draw(); });
+      b.querySelectorAll('[data-add]').forEach(x=>x.onclick=()=>{ st[+x.dataset.add].items.push(''); draw(); });
+      b.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{ const s=st[+x.dataset.rm]; s.items.splice(+x.dataset.j,1); if(!s.items.length) s.items=['']; draw(); });
+      $('#mpCopy')&&($('#mpCopy').onclick=()=>{ (prev||[]).forEach(x=>{ const t=toState(x); if(!t.items.length) t.items=['']; st[x.day]=t; }); draw(); toast('Copied. Change what you need, then Save plan.'); });
+      $('#mpF').onsubmit=async e=>{ e.preventDefault(); const bt=e.submitter; bt.disabled=true;
+        const rows=st.map((s,i)=>{ const items=[...new Set(s.items.filter(Boolean))].map(id=>{ const k=kById[id]; return {kpi_id:id, code:k.kpi_code, name:k.kpi_name, target:tgtText(k)}; });
+          return {officer_id:S.me.id, week_start:PL.week, day:i, location:s.location||null, items,
+            activity:items.length?items.map(x=>`${x.code} – ${x.name} (${x.target})`).join('\n'):(s.note||null), updated_at:new Date().toISOString()}; });
+        const {error}=await sb.from('week_plans').upsert(rows,{onConflict:'officer_id,week_start,day'});
+        bt.disabled=false; if(error) return err(error); toast('Plan saved.'); viewMyPlan(); };
+    };
+    draw();
   }catch(x){ err(x); $('#mpBody').innerHTML='<b>Could not load your plan</b>Check your connection and refresh the page.'; }
 }
 
