@@ -24,17 +24,18 @@ body{background:var(--page);color:var(--ink);font:400 15px/1.5 var(--body);paddi
 button,input,select,textarea{font:inherit;color:inherit}
 .wrap{max-width:1200px;margin:0 auto;padding-inline:16px}
 .app{display:flex;min-height:100vh}
-.side{width:250px;flex:none;background:linear-gradient(180deg,var(--brand),var(--deep));color:#fff;position:fixed;top:0;bottom:0;left:0;z-index:30;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0);transition:left .25s}
+.side{width:250px;flex:none;background:linear-gradient(180deg,#312e81 0%,#1e1b4b 100%);color:#fff;position:fixed;top:0;bottom:0;left:0;z-index:30;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0);transition:left .25s}
 .side .top{display:flex;justify-content:center;padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
-.logo.big{width:120px;height:132px;padding:8px;border-radius:16px}
+.logo.big{width:104px;height:114px;padding:10px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
 .logo{width:46px;height:50px;object-fit:contain;background:#fff;border-radius:10px;padding:3px;flex:none}
 .side .brand{font:700 18px/1.1 var(--display);letter-spacing:.05em;color:#fff}
-.side nav{display:grid;gap:4px;padding:14px 10px;flex:1;align-content:start}
-.side nav a{color:rgba(255,255,255,.78);text-decoration:none;font:600 16px/1 var(--display);letter-spacing:.02em;padding:12px 14px;border-radius:10px;display:flex;justify-content:space-between;align-items:center}
+.side nav{display:grid;gap:2px;padding:16px 12px;flex:1;align-content:start}
+.side nav::before{content:"MENU";font:600 11px/1 var(--body);letter-spacing:.14em;color:rgba(255,255,255,.5);padding:0 14px 10px}
+.side nav a{color:rgba(255,255,255,.78);text-decoration:none;font:500 15px/1 var(--body);padding:11px 14px;border-radius:8px;display:flex;justify-content:space-between;align-items:center}
 .side nav a:hover{background:rgba(255,255,255,.08);color:#fff}
-.side nav a.on{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 4px 0 0 var(--amber)}
+.side nav a.on{background:rgba(165,180,252,.18);color:#fff;box-shadow:inset 3px 0 0 #a5b4fc}
 .side nav a .count{min-width:22px;padding:2px 7px;border-radius:10px;background:var(--amber);color:#1b1404;font:600 12px/1.3 var(--body);text-align:center}
-.side .who{padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(255,255,255,.1);display:grid;gap:8px;font-size:13px}
+.side .who{padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));background:rgba(0,0,0,.16);border-top:1px solid rgba(255,255,255,.08);display:grid;gap:8px;font-size:13px}
 .side .who b{font-size:14px}
 .side .who .r{color:rgba(255,255,255,.7)}
 .side .who .row{gap:6px}
@@ -145,6 +146,28 @@ details.grp>.in{padding:0 14px 12px}
 .seg button{border:0;background:var(--surface);padding:7px 14px;cursor:pointer;font-weight:600;color:var(--muted)}
 .seg button.on{background:var(--brand);color:#fff}
 table.mp td{vertical-align:top}
+.pl{display:grid;grid-template-columns:minmax(0,1fr) 96px 34px;gap:6px;align-items:center;margin-bottom:6px}
+.pl input[type=text]::placeholder{color:#94a3b8;font-style:italic}
+.x{height:36px;border:1px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer;font-size:18px;color:var(--muted)}
+.x[disabled]{opacity:.35;cursor:default}
+.pgg{display:grid;grid-template-columns:repeat(var(--n),minmax(54px,1fr)) minmax(80px,auto) 72px;gap:6px;align-items:center;min-width:calc(var(--n)*60px + 160px)}
+.pgg > span{font-size:12px;font-weight:600;color:var(--muted);text-align:center;white-space:nowrap}
+.pgg > span.td{color:#92400e;background:#fef3c7;border-radius:6px;padding:2px 0}
+.pgg .pv{font-size:13px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.pgg .pv.cm{color:#92400e;font-weight:700}
+.pgg .tot{text-align:right;font-variant-numeric:tabular-nums}
+.pgg .tot small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.pgg input{width:100%;padding:7px 6px;text-align:center}
+.pgg select.lc{padding:4px 2px;font-size:11.5px;border-radius:5px;color:var(--muted)}
+.pgg select.lc.set{color:var(--ink);border-color:#c7d2fe;background:#eef2ff}
+.dg.dh button.dbtn.td{background:#fef3c7;border-color:#fcd34d;color:#92400e}
+table.plt input{width:84px;text-align:center}
+.tg{color:var(--brand);font-weight:600} .dn{color:var(--good);font-weight:600}
+ol.tl{list-style:none;margin:6px 0;padding:0 0 0 14px;border-left:2px solid #c7d2fe;display:grid;gap:8px}
+ol.tl li{position:relative;font-size:13.5px}
+ol.tl li::before{content:"";position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#a5b4fc}
+ol.tl li.ev-approved::before{background:var(--good)} ol.tl li.ev-returned::before{background:var(--bad)} ol.tl li.ev-submitted::before{background:var(--brand2)}
+details.perf .tiles{margin:0}
 .pk{display:grid;grid-template-columns:minmax(0,1fr) 150px 34px;gap:6px;align-items:center;margin-bottom:6px}
 .pk .tgt{font-size:12.5px;color:var(--brand);font-weight:600}
 .pk .x{height:34px;border:1px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer;font-size:18px;color:var(--muted)}
@@ -157,7 +180,7 @@ table.mp td{vertical-align:top}
 table.kt td:first-child{min-width:240px}
 .prog b{color:var(--ink)}
 @media (max-width:640px){.dg{grid-template-columns:repeat(6,minmax(0,1fr)) 38px;gap:3px} .dg input{width:100%;padding:7px 1px} .dg select.lc{font-size:10px;padding:3px 0} .dg.dh span{font-size:11px} details.grp>.in{padding:0 10px 10px}}
-@media (max-width:640px){table.mp thead{display:none} table.mp tr{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)} table.mp td{border:0;padding:0} table.mp td:first-child{display:flex;gap:8px;align-items:baseline} .pk{grid-template-columns:minmax(0,1fr) 34px} .pk .tgt{grid-column:1;grid-row:2}}
+@media (max-width:640px){table.mp thead{display:none} table.mp tr{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)} table.mp td{border:0;padding:0} table.mp td:first-child{display:flex;gap:8px;align-items:baseline} .pl{grid-template-columns:minmax(0,1fr) 70px 34px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -328,79 +351,169 @@ function bindRibbon(id, getW, setW, after){
   $(`#${id}Next`).onclick=()=>{ setW(ymd(addD(parse(getW()),7))); after(); };
 }
 
+// ---------- shared: plan lines ----------
+const numOrNull = v => { if(v===null||v===undefined||v==='') return null; const n=typeof v==='number'?v:parseFloat(String(v)); return isNaN(n)?null:n; };
+function planItems(x){ if(!x) return [];
+  if(Array.isArray(x.items)&&x.items.length) return x.items.map(it=>({t:it.t||'kpi', text:it.text||'', kpi_id:it.kpi_id||null, code:it.code||'', name:it.name||'', target:numOrNull(it.target), done:numOrNull(it.done)}));
+  return x.activity?[{t:'text', text:x.activity, target:null, done:null}]:[]; }
+const lineName = it => it.t==='text' ? (it.text||'Planned work') : `${it.code?it.code+' – ':''}${it.name||''}`;
+const planCell = (x, kdone) => { const its=planItems(x); if(!x||(!x.location&&!its.length)) return '<span class="muted">–</span>';
+  return `${x.location?`<b>${esc(x.location)}</b>`:''}${its.map((it,j)=>{ const d=kdone?kdone(it):it.done; return `<div class="sub">• ${esc(lineName(it))}${it.target!=null?` <span class="tg">Target ${num(it.target)}</span>`:''}${d!=null?` <span class="dn">done ${num(d)}</span>`:''}</div>`; }).join('')}`; };
+const planText = x => { const its=planItems(x); return [x?.location, ...its.map(it=>lineName(it)+(it.target!=null?` (target ${it.target})`:'')+(it.done!=null?` [done ${it.done}]`:''))].filter(Boolean).join('\n'); };
+function weeksOfMonth(y,m){ let s=satOf(new Date(y,m,1)); if(thuOf(ymd(s)).getMonth()!==m) s=addD(s,7); const out=[]; while(thuOf(ymd(s)).getMonth()===m){ out.push(ymd(s)); s=addD(s,7); } return out; }
+const EVT_LABEL={submitted:'Submitted',approved:'Approved',returned:'Returned'};
+
 // ---------- My KPIs ----------
 async function viewMy(){
-  const m=$('#main'); m.innerHTML=`<h1>My KPIs</h1><p class="lead">Enter what you did this week (Saturday to Thursday) for each KPI, then submit for approval. Monthly, quarterly and annual KPIs add up week by week toward their target.</p>${ribbon(S.week,'my')}<div id="myBody" class="empty">Loading your KPIs…</div>`;
+  const m=$('#main'); m.innerHTML=`<h1>My KPIs</h1><p class="lead">Enter what you did this week (Saturday to Thursday), then submit for approval. Click a day (Sat to Thu) to see everything you entered for that day.</p>${ribbon(S.week,'my')}<div id="myPerf"></div><div id="myBody" class="empty">Loading your KPIs…</div>`;
   bindRibbon('my',()=>S.week,w=>S.week=w,viewMy);
+  myPerformance();
   try{
     const {error:e0}=await sb.rpc('ensure_week_plan',{p_officer:S.me.id,p_week:S.week}); if(e0) throw e0;
-    const thu=thuOf(S.week), y0=ymd(addD(new Date(thu.getFullYear(),0,1),-5));
-    const [{data:rows,error:e1},{data:sub,error:e2},{data:hist,error:e3},yr] = await Promise.all([
+    const thu=thuOf(S.week), Y=thu.getFullYear(), M=thu.getMonth(), y0=ymd(addD(new Date(Y,0,1),-5));
+    const [{data:rows,error:e1},{data:sub,error:e2},{data:hist,error:e3},yr,{data:plans,error:e4}] = await Promise.all([
       sb.from('week_kpis').select('*').eq('officer_id',S.me.id).eq('week_start',S.week).order('kpi_code'),
       sb.from('week_submissions').select('*').eq('officer_id',S.me.id).eq('week_start',S.week).maybeSingle(),
       sb.from('week_submissions').select('*').eq('officer_id',S.me.id).neq('status','draft').order('week_start',{ascending:false}).limit(12),
-      fetchAll(()=>sb.from('week_kpis').select('kpi_code,kpi_name,week_start,actual').eq('officer_id',S.me.id).gte('week_start',y0).lte('week_start',S.week).neq('week_start',S.week))]);
-    if(e1||e2||e3) throw (e1||e2||e3);
+      fetchAll(()=>sb.from('week_kpis').select('kpi_code,kpi_name,week_start,actual').eq('officer_id',S.me.id).gte('week_start',y0).lte('week_start',S.week).neq('week_start',S.week)),
+      sb.from('week_plans').select('*').eq('officer_id',S.me.id).eq('week_start',S.week)]);
+    if(e1||e2||e3||e4) throw (e1||e2||e3||e4);
+    const evs = hist.length ? (await sb.from('week_events').select('*').eq('officer_id',S.me.id).in('week_start',hist.map(h=>h.week_start)).order('at')).data||[] : [];
     const st=sub?.status||'draft', locked = st==='submitted'||st==='approved';
     const body=$('#myBody'); body.className='';
-    if(!rows.length){ body.className='empty'; body.innerHTML=`<b>No KPIs assigned for this week</b>KPIs come from your designation (${esc(S.me.designation||'not set')}). Ask QHSE to check your designation.`; return; }
-    const before = r => { const w=periodWindow(r.period,thu); if(!w) return null; const [a,b]=w;
-      return yr.filter(x=>x.kpi_code===r.kpi_code&&x.kpi_name===r.kpi_name&&thuOf(x.week_start)>=a&&thuOf(x.week_start)<=b).reduce((s,x)=>s+(Number(x.actual)||0),0); };
-    const DN=['Sat','Sun','Mon','Tue','Wed','Thu']; const todayIdx=DN.findIndex((d,i)=>ymd(addD(parse(S.week),i))===ymd(new Date()));
+    const same=(x,r)=>x.kpi_code===r.kpi_code&&x.kpi_name===r.kpi_name;
+    const wkSum=(r,k)=>yr.filter(x=>same(x,r)&&x.week_start===k).reduce((s,x)=>s+(Number(x.actual)||0),0);
+    const monSum=(r,mm)=>yr.filter(x=>same(x,r)&&thuOf(x.week_start).getMonth()===mm&&thuOf(x.week_start).getFullYear()===Y).reduce((s,x)=>s+(Number(x.actual)||0),0);
+    const before = r => { const w=periodWindow(r.period,thu); if(!w) return 0; const [a,b]=w;
+      return yr.filter(x=>same(x,r)&&thuOf(x.week_start)>=a&&thuOf(x.week_start)<=b).reduce((s,x)=>s+(Number(x.actual)||0),0); };
+    const todayIdx=DAYN.findIndex((d,i)=>ymd(addD(parse(S.week),i))===ymd(new Date()));
     const dayVals = r => Array.isArray(r.daily) ? r.daily : ['','','','','',''];
-    const dayHead = () => `<div class="dg dh">${DN.map((d,i)=>`<span class="${i===todayIdx?'td':''}">${d} ${addD(parse(S.week),i).getDate()}</span>`).join('')}<span class="tot">Week</span></div>`;
-    const rowHtml = r => { const prev=before(r), w=periodWindow(r.period,thu), dv=dayVals(r), pc=r.measure==='percent';
-      return `<tr><td><div class="code">${esc(r.kpi_code||'')} · ${esc(r.category||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>
-          <div class="sub"><span class="tg">${esc(tgtText(r))}</span>${w&&!pc?` · <span class="prog" id="pg_${r.id}" data-prev="${prev}"><b>${num(prev+(Number(r.actual)||0))}</b>${r.period_target!=null?' of '+num(r.period_target):''} done in ${esc(w[2])}</span>`:''}</div></td>
-        <td><div class="dg">${DN.map((d,i)=>{ const ref=refOf(r,i); return `<div class="dc"><input type="number" min="0" ${pc?'max="100"':''} step="any" class="dv ${i===todayIdx?'td':''}" data-r="${r.id}" data-i="${i}" value="${esc(dv[i]??'')}" placeholder="${pc?'%':'0'}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d}">
-            <select class="lc ${ref?'set':''}" data-r="${r.id}" data-i="${i}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d} reference or location">${locOpts(locList(r),ref)}</select></div>`; }).join('')}
+    const isDayRow = r => r.measure==='percent' || r.period_target==null || ['day','week','event'].includes(r.period);
+    const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn ${i===todayIdx?'td':''}" data-day="${i}" title="Open ${d}">${d} ${addD(parse(S.week),i).getDate()}</button>`).join('')}<span class="tot">Week</span></div>`;
+    const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')} · ${esc(r.category||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>`;
+    const dayRow = r => { const dv=dayVals(r), pc=r.measure==='percent';
+      return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div></td>
+        <td><div class="dg">${DAYN.map((d,i)=>{ const ref=refOf(r,i); return `<div class="dc"><input type="number" min="0" ${pc?'max="100"':''} step="any" class="dv ${i===todayIdx?'td':''}" data-r="${r.id}" data-i="${i}" value="${esc(dv[i]??'')}" placeholder="${pc?'%':'0'}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d}">
+            <select class="lc ${ref?'set':''}" data-r="${r.id}" data-i="${i}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d} location">${locOpts(locList(),ref)}</select></div>`; }).join('')}
           <b class="tot" id="tot_${r.id}">${pc?(r.actual==null?'–':num(r.actual)+'%'):num(Number(r.actual)||0)}</b></div></td></tr>`; };
-    const pctRows = rows.filter(r=>r.measure==='percent'); const recRows=rows.filter(r=>r.period_target==null&&r.measure!=='percent');
-    const grpHtml = (k,title,list,open) => list.length?`<details class="grp" ${open?'open':''}><summary><span>${title} <span class="muted small">(${list.length})</span></span></summary><div class="in scroll"><table class="kt">
-      <thead><tr><th>KPI and target</th><th>${dayHead()}</th></tr></thead><tbody>${list.map(rowHtml).join('')}</tbody></table></div></details>`:'';
-    const inGroup = (f) => rows.filter(r=>r.measure!=='percent'&&r.period_target!=null&&f(r.period));
+    // period sections: columns = sub-periods; the current one holds this week's input
+    const weeks=weeksOfMonth(Y,M), qm=[0,1,2].map(j=>Math.floor(M/3)*3+j);
+    const cols = { mo: weeks.map((k,j)=>({key:k, label:`Week ${j+1}`, title:wkLabel(k), cur:k===S.week, fut:k>S.week})),
+                   qt: qm.map(mm=>({key:mm, label:MON[mm], cur:mm===M, fut:mm>M})),
+                   yr: MON.map((x,mm)=>({key:mm, label:x, cur:mm===M, fut:mm>M})) };
+    const pHead = g => `<div class="pgg" style="--n:${cols[g].length}">${cols[g].map(c=>`<span class="${c.cur?'td':''}" title="${esc(c.title||c.label)}">${esc(c.label)}</span>`).join('')}${g==='mo'?'':'<span class="td">This week</span>'}<span class="tot">Total</span></div>`;
+    const pInput = r => `<div class="dc"><input type="number" min="0" step="any" class="wv td" data-r="${r.id}" value="${esc(r.actual??'')}" placeholder="0" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} this week">
+        <select class="lc ${refOf(r,0)?'set':''}" data-r="${r.id}" data-i="0" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} location">${locOpts(locList(),refOf(r,0))}</select></div>`;
+    const pRow = (g,r) => { const pv=before(r);
+      const cells=cols[g].map(c=>{ if(g==='mo') return c.cur?pInput(r):`<span class="pv">${c.fut?'·':num(wkSum(r,c.key))}</span>`;
+          const v=monSum(r,c.key); return `<span class="pv ${c.cur?'cm':''}" ${c.cur?`id="cm_${r.id}" data-base="${v}"`:''}>${c.fut?'·':num(v+(c.cur?(Number(r.actual)||0):0))}</span>`; }).join('');
+      return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div></td>
+        <td><div class="pgg" style="--n:${cols[g].length}">${cells}${g==='mo'?'':pInput(r)}<b class="tot" id="pt_${r.id}" data-prev="${pv}">${num(pv+(Number(r.actual)||0))}${r.period_target!=null?`<small>of ${num(r.period_target)}</small>`:''}</b></div></td></tr>`; };
+    const grp = (title,list,head,rowFn,open,note) => list.length?`<details class="grp" ${open?'open':''}><summary><span>${title} <span class="muted small">(${list.length})</span></span></summary><div class="in scroll">${note?`<p class="small muted" style="margin:0 0 6px">${note}</p>`:''}<table class="kt">
+      <thead><tr><th>KPI and target</th><th>${head}</th></tr></thead><tbody>${list.map(rowFn).join('')}</tbody></table></div></details>`:'';
+    const norm = rows.filter(r=>r.measure!=='percent'&&r.period_target!=null);
+    const G = { dy:norm.filter(r=>r.period==='day'||r.period==='event'), wk:norm.filter(r=>r.period==='week'),
+      mo:norm.filter(r=>r.period==='month'||r.period==='bimonth'), qt:norm.filter(r=>r.period==='quarter'||r.period==='half'), yr:norm.filter(r=>r.period==='year'),
+      pc:rows.filter(r=>r.measure==='percent'), rc:rows.filter(r=>r.period_target==null&&r.measure!=='percent') };
+    // plan this week
+    const byId=Object.fromEntries(rows.map(r=>[r.id,r])); const byKpi=Object.fromEntries(rows.map(r=>[r.kpi_id,r]));
+    const pl=Object.fromEntries((plans||[]).map(x=>[x.day,x]));
+    const planRows=[]; DAYN.forEach((d,i)=>planItems(pl[i]).forEach((it,j)=>planRows.push({i,j,it,loc:pl[i]?.location||''})));
+    const planHtml = planRows.length?`<details class="grp" open><summary><span>My plan this week <span class="muted small">(${planRows.length})</span></span></summary><div class="in scroll">
+      <p class="small muted" style="margin:0 0 6px">From My plan. Enter how much you did against each line. KPI lines are the same as in the KPI tables below, so a number entered here also fills that KPI's day (and the other way round). These targets count in your score.</p>
+      <table class="plt"><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
+      ${planRows.map(p=>{ const r=p.it.t==='kpi'?byKpi[p.it.kpi_id]:null; let inp;
+        if(r&&isDayRow(r)) inp=`<input type="number" min="0" step="any" class="pm" data-r="${r.id}" data-i="${p.i}" value="${esc(dayVals(r)[p.i]??'')}" placeholder="0" ${locked?'disabled':''} aria-label="Done">`;
+        else if(r) inp=`<span class="sub" id="pw_${r.id}">${num(Number(r.actual)||0)} this week</span>`;
+        else inp=`<input type="number" min="0" step="any" class="pd" data-d="${p.i}" data-j="${p.j}" value="${esc(p.it.done??'')}" placeholder="0" ${locked?'disabled':''} aria-label="Done">`;
+        return `<tr><td><b>${DAYN[p.i]}</b> <span class="sub">${esc(shortD(ymd(addD(parse(S.week),p.i))))}</span></td><td>${esc(p.loc||'–')}</td>
+          <td>${p.it.t==='kpi'?`<div class="code">${esc(p.it.code||'')}</div>${esc(p.it.name)}`:esc(p.it.text||'Planned work')}</td>
+          <td class="n"><b>${p.it.target==null?'–':num(p.it.target)}</b></td><td class="n">${inp}</td></tr>`; }).join('')}
+      </tbody></table></div></details>`
+      : `<div class="note" style="margin-bottom:12px">No plan for this week. <a class="link" href="#myplan">Make your plan</a> – where you go each day, what you will do and your targets.</div>`;
     const filled = rows.filter(r=>r.actual!=null).length;
+    const evOf = k => evs.filter(e=>e.week_start===k);
+    if(!rows.length&&!planRows.length){ body.className='empty'; body.innerHTML=`<b>No KPIs assigned for this week</b>KPIs come from your designation (${esc(S.me.designation||'not set')}). Ask QHSE to check your designation.`; return; }
     body.innerHTML = `<div class="tiles" style="margin-bottom:16px">
         <div class="tile"><span class="k">This week's score</span><span class="v" style="color:${col(sub?.score)}">${pct(sub?.score)}</span><span class="s">${rpill(sub?.score)}</span></div>
-        <div class="tile"><span class="k">KPIs this week</span><span class="v">${rows.length}</span><span class="s">${esc(S.me.designation||'')}</span></div>
+        <div class="tile"><span class="k">KPIs this week</span><span class="v">${rows.length}</span><span class="s">${planRows.length?planRows.length+' plan lines':esc(S.me.designation||'')}</span></div>
         <div class="tile"><span class="k">Filled in</span><span class="v">${filled}/${rows.length}</span><span class="s">Saved KPIs this week</span></div>
         <div class="tile"><span class="k">Status</span><span class="v" style="font-size:22px;margin-top:6px">${spill(st)}</span><span class="s">${sub?.submitted_at?'Submitted '+new Date(sub.submitted_at).toLocaleDateString():'Submit by Thursday'}</span></div>
       </div>
         ${st==='returned'?`<div class="note bad" style="margin-bottom:10px"><b>Returned by ${esc(sub.reviewed_by||'manager')}:</b> ${esc(sub.supervisor_remarks)}</div>`:''}
         ${st==='approved'?`<div class="note good" style="margin-bottom:10px">Approved by ${esc(sub.reviewed_by)}${sub.supervisor_remarks?': '+esc(sub.supervisor_remarks):''}</div>`:''}
-        <p class="small muted" style="margin:0 0 10px">Enter each day's number under Sat to Thu and pick the client or location for that day below it. The Week column adds them up. Percentage KPIs take the average of the days you fill.</p>
         <form id="myF">
-          ${GROUPS.map(([k,t,f],i)=>grpHtml(k,t,inGroup(f),i<2)).join('')}
-          ${grpHtml('pc','Percentage KPIs (enter % achieved)',pctRows,true)}
-          ${grpHtml('rc','Record only (no target)',recRows,false)}
+          ${planHtml}
+          ${grp('Daily KPIs',G.dy,dayHead(),dayRow,true,'Daily and event-driven KPIs. Enter each day\'s number and pick the client or location under it.')}
+          ${grp('Weekly KPIs',G.wk,dayHead(),dayRow,true)}
+          ${grp(`Monthly KPIs – ${MON[M]} ${Y}`,G.mo,pHead('mo'),r=>pRow('mo',r),true,'Enter this week\'s number in the highlighted week. Other weeks show what you entered before.')}
+          ${grp(`Quarterly KPIs – Q${Math.floor(M/3)+1} ${Y}`,G.qt,pHead('qt'),r=>pRow('qt',r),false,'Month totals so far. Enter this week\'s number under This week.')}
+          ${grp(`Yearly KPIs – ${Y}`,G.yr,pHead('yr'),r=>pRow('yr',r),false,'Month totals so far. Enter this week\'s number under This week.')}
+          ${grp('Percentage KPIs (enter % achieved)',G.pc,dayHead(),dayRow,true)}
+          ${grp('Record only (no target)',G.rc,dayHead(),dayRow,false)}
           <div class="panel stack">
             <label class="f" for="rem">Remarks for your manager<textarea id="rem" ${locked?'disabled':''} placeholder="Highlights, problems, support needed">${esc(sub?.officer_remarks||'')}</textarea></label>
             <div class="row">${locked?`<span class="muted small">This week is ${st==='approved'?'approved':'waiting for approval'} and can no longer be changed.</span>`:
               `<button class="btn" type="submit" data-submit="1">Submit week for approval</button><button class="btn line" type="submit" data-submit="0">Save draft</button><span class="small muted">You can save every day and submit on Thursday. Empty days count as 0.</span>`}</div>
           </div>
         </form>
-        <div class="panel" style="margin-top:16px"><h2>My recent weeks</h2>${hist.length?`<table><tbody>${hist.map(h=>`<tr class="click" data-w="${h.week_start}"><td>${esc(wkLabel(h.week_start))}</td><td>${spill(h.status)}</td><td class="n"><b>${pct(h.score)}</b></td></tr>`).join('')}</tbody></table>`:'<p class="muted small">Submitted weeks appear here.</p>'}</div>`;
-    document.querySelectorAll('tr[data-w]').forEach(tr=>tr.onclick=()=>{S.week=tr.dataset.w; viewMy();});
-    const byId=Object.fromEntries(rows.map(r=>[r.id,r]));
+        <div class="panel" style="margin-top:16px"><h2>My recent weeks</h2>${hist.length?`<table class="rw"><tbody>${hist.map(h=>`<tr class="click" data-w="${h.week_start}"><td>${esc(wkLabel(h.week_start))}</td><td>${spill(h.status)}</td><td class="n"><b>${pct(h.score)}</b></td><td class="n"><button type="button" class="btn line sm" data-tl="${h.week_start}">History</button></td></tr>
+          <tr class="tlrow" id="tl_${h.week_start}" hidden><td colspan="4"><ol class="tl">${evOf(h.week_start).map(e=>`<li class="ev-${esc(e.action)}"><b>${EVT_LABEL[e.action]||esc(e.action)}</b> by ${esc(e.by_name||'–')} <span class="muted small">· ${new Date(e.at).toLocaleString()}</span>${e.remarks?`<div class="sub">“${esc(e.remarks)}”</div>`:''}</li>`).join('')||'<li class="muted">No history recorded.</li>'}</ol></td></tr>`).join('')}</tbody></table>`:'<p class="muted small">Submitted weeks appear here.</p>'}</div>`;
+    document.querySelectorAll('tr[data-w]').forEach(tr=>tr.onclick=e=>{ if(e.target.closest('[data-tl]')) return; S.week=tr.dataset.w; viewMy();});
+    document.querySelectorAll('[data-tl]').forEach(b=>b.onclick=()=>{ const r=$('#tl_'+b.dataset.tl); r.hidden=!r.hidden; });
+    document.querySelectorAll('#myBody .dbtn').forEach(b=>b.onclick=()=>openDay(S.week,+b.dataset.day,S.me.id,'one'));
     const daysOf = id => [...document.querySelectorAll(`input.dv[data-r="${id}"]`)].map(x=>x.value);
     const refsOf = id => [...document.querySelectorAll(`select.lc[data-r="${id}"]`)].map(x=>x.value);
     document.querySelectorAll('select.lc').forEach(sel=>sel.addEventListener('change',()=>sel.classList.toggle('set',!!sel.value)));
     const totalOf = (r,v) => { const n=v.filter(x=>x!=='').map(Number); return r.measure==='percent' ? (n.length? n.reduce((a,b)=>a+b,0)/n.length : null) : n.reduce((a,b)=>a+b,0); };
-    document.querySelectorAll('input.dv').forEach(inp=>inp.addEventListener('input',()=>{ const r=byId[inp.dataset.r], t=totalOf(r,daysOf(r.id));
-      $('#tot_'+r.id).textContent = r.measure==='percent' ? (t==null?'–':num(t)+'%') : num(t);
-      const pg=$('#pg_'+r.id); if(pg) pg.querySelector('b').textContent=num(Number(pg.dataset.prev)+(t||0)); }));
+    const refresh = id => { const r=byId[id]; const t=totalOf(r,daysOf(id)); const el=$('#tot_'+id); if(el) el.textContent = r.measure==='percent' ? (t==null?'–':num(t)+'%') : num(t); };
+    document.querySelectorAll('input.dv').forEach(inp=>inp.addEventListener('input',()=>{ refresh(inp.dataset.r);
+      const pm=document.querySelector(`input.pm[data-r="${inp.dataset.r}"][data-i="${inp.dataset.i}"]`); if(pm) pm.value=inp.value; }));
+    document.querySelectorAll('input.pm').forEach(pm=>pm.addEventListener('input',()=>{ const dv=document.querySelector(`input.dv[data-r="${pm.dataset.r}"][data-i="${pm.dataset.i}"]`);
+      if(dv){ dv.value=pm.value; refresh(pm.dataset.r); } document.querySelectorAll(`input.pm[data-r="${pm.dataset.r}"][data-i="${pm.dataset.i}"]`).forEach(o=>{ if(o!==pm) o.value=pm.value; }); }));
+    document.querySelectorAll('input.wv').forEach(inp=>inp.addEventListener('input',()=>{ const v=Number(inp.value)||0, id=inp.dataset.r;
+      const pt=$('#pt_'+id); if(pt) pt.firstChild.textContent=num(Number(pt.dataset.prev)+v);
+      const cm=$('#cm_'+id); if(cm) cm.textContent=num(Number(cm.dataset.base)+v);
+      const pw=$('#pw_'+id); if(pw) pw.textContent=num(v)+' this week'; }));
     $('#myF')?.addEventListener('submit', async e=>{
       e.preventDefault(); const submit = e.submitter?.dataset.submit==='1';
       const vals={}; let bad=false;
-      rows.forEach(r=>{ const v=daysOf(r.id); if(r.measure==='percent'&&v.some(x=>x!==''&&Number(x)>100)) bad=true;
+      rows.forEach(r=>{ const wv=document.querySelector(`input.wv[data-r="${r.id}"]`);
+        if(wv){ vals[r.id]={v:wv.value===''?'':String(Number(wv.value)), ref:[refsOf(r.id)[0]||'','','','','','']}; return; }
+        const v=daysOf(r.id); if(r.measure==='percent'&&v.some(x=>x!==''&&Number(x)>100)) bad=true;
         vals[r.id] = {v:v.map(x=>x===''?'':String(Number(x))), ref:refsOf(r.id)}; });
       if(bad) return toast('Percentage KPIs must be between 0 and 100.');
+      const plan={}; DAYN.forEach((d,i)=>{ const its=planItems(pl[i]); if(!its.length) return;
+        plan[i]=its.map((it,j)=>{ const el=document.querySelector(`input.pd[data-d="${i}"][data-j="${j}"]`); return el?el.value:null; }); });
       e.submitter.disabled=true;
-      const {error}=await sb.rpc('save_week',{p_week:S.week,p_values:vals,p_remarks:$('#rem').value.trim(),p_submit:submit});
+      const {error}=await sb.rpc('save_week_v2',{p_week:S.week,p_values:vals,p_remarks:$('#rem').value.trim(),p_submit:submit,p_plan:plan});
       if(error){ err(error); e.submitter.disabled=false; return; }
       toast(submit?'Week submitted for approval.':'Draft saved.'); viewMy();
     });
   }catch(x){ err(x); $('#myBody').innerHTML='<b>Could not load your KPIs</b>Check your connection and refresh the page.'; }
+}
+async function myPerformance(){
+  const box=$('#myPerf'); if(!box) return;
+  try{
+    const now=thuOf(thisWeek()), y=now.getFullYear(), mo=now.getMonth(), q=Math.floor(mo/3);
+    const win={ week:[thisWeek(),thisWeek(),1], month:[...wkRange(new Date(y,mo,1),new Date(y,mo+1,0)),2],
+      quarter:[...wkRange(new Date(y,q*3,1),new Date(y,q*3+3,0)),3], year:[...wkRange(new Date(y,0,1),new Date(y,11,31)),5] };
+    const from12=ymd(addD(parse(thisWeek()),-77));
+    const [w,mth,qt,yr,kr,tr]=await Promise.all([
+      ...['week','month','quarter','year'].map(k=>sb.rpc('period_scores',{p_from:win[k][0],p_to:win[k][1],p_maxrank:win[k][2],p_officer:S.me.id})),
+      sb.rpc('kpi_rollup',{p_from:win.month[0],p_to:win.month[1],p_officer:S.me.id}),
+      sb.from('week_submissions').select('week_start,score').eq('officer_id',S.me.id).gte('week_start',from12).neq('status','draft')]);
+    const sc=r=>r.data?.[0]?.score!=null?Number(r.data[0].score):null;
+    const wk=[]; for(let i=11;i>=0;i--) wk.push(ymd(addD(parse(thisWeek()),-7*i)));
+    const tv=wk.map(k=>{ const s=(tr.data||[]).find(t=>t.week_start===k); return s?.score!=null?Number(s.score):null; });
+    const kl=(kr.data||[]).filter(r=>r.sum_target!=null&&(RANK[r.period]<=2||r.measure==='percent'))
+      .map(r=>({...r,a:r.measure==='percent'?ach(r.direction,100,r.avg_actual,'percent'):ach(r.direction,r.sum_target,r.sum_actual)})).sort((a,b)=>a.a-b.a);
+    box.innerHTML=`<details class="grp perf" open><summary><span>My performance <span class="muted small">(approved and submitted weeks)</span></span></summary><div class="in">
+      <div class="tiles">${[['This week',sc(w)],[MON[mo]+' '+y,sc(mth)],[`Q${q+1} ${y}`,sc(qt)],['Year '+y,sc(yr)]].map(([k,v])=>`<div class="tile"><span class="k">${esc(k)}</span><span class="v" style="color:${col(v)}">${pct(v)}</span><span class="s">${rpill(v)}</span></div>`).join('')}</div>
+      <div class="cols" style="margin-top:12px"><div class="panel chart"><h2>My weekly score, last 12 weeks</h2>${bars(tv, wk.map(shortD))}</div>
+      <div class="panel"><h2>My KPIs, ${MON[mo]}</h2>${kl.length?`<table><tbody>${kl.slice(0,8).map(k=>`<tr><td><div class="code">${esc(k.kpi_code||'')}</div>${esc(k.kpi_name)}<div class="sub">${k.measure==='percent'?'average %':num(k.sum_actual)+' of '+num(k.sum_target)}</div></td><td style="width:42%">${meter(k.a)}</td></tr>`).join('')}</tbody></table><p class="small muted">Lowest first. ${kl.length} KPIs this month.</p>`:'<p class="muted small">Your submitted weeks this month will show here.</p>'}</div></div>
+    </div></details>`;
+  }catch(x){ console.error(x); }
 }
 
 // ---------- Approvals ----------
@@ -416,8 +529,13 @@ async function viewApprovals(){
   document.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openReview(data.find(x=>x.id===tr.dataset.id), viewApprovals));
 }
 async function openReview(sub, after){
-  const {data:rows,error}=await sb.from('week_kpis').select('*').eq('officer_id',sub.officer_id).eq('week_start',sub.week_start).order('kpi_code');
+  const [{data:rows,error},{data:plans},{data:evs}]=await Promise.all([
+    sb.from('week_kpis').select('*').eq('officer_id',sub.officer_id).eq('week_start',sub.week_start).order('kpi_code'),
+    sb.from('week_plans').select('*').eq('officer_id',sub.officer_id).eq('week_start',sub.week_start).order('day'),
+    sb.from('week_events').select('*').eq('officer_id',sub.officer_id).eq('week_start',sub.week_start).order('at')]);
   if(error) return err(error);
+  const pLines=[]; (plans||[]).forEach(x=>planItems(x).forEach(it=>{ const r=it.t==='kpi'?rows.find(k=>k.kpi_id===it.kpi_id):null;
+    const done=r?(['day','week','event'].includes(r.period)||r.measure==='percent'||r.period_target==null?dayVal(r,x.day):r.actual):it.done; pLines.push({d:x.day,loc:x.location,it,done}); })); pLines.sort((a,b)=>a.d-b.d);
   const canAct = sub.status==='submitted' && sub.officer_id!==S.me.id;
   const md=document.createElement('div'); md.className='modal'; md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Review week">
     <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${esc(sub.profiles?.full_name||'')}</h2><div class="muted">Week of ${esc(wkLabel(sub.week_start))}</div></div>
@@ -427,7 +545,11 @@ async function openReview(sub, after){
       return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div></td><td class="small">${esc(tgtText(r))}</td>
       <td>${dayRO(r)}</td><td>${wk?meter(ach(r.direction,r.target,r.actual,r.measure)):'<span class="sub">Counts in '+(r.period==='event'?'month':esc(r.period))+' score</span>'}</td></tr>`;}).join('')}
     </tbody></table></div>
-    <div class="row"><b>Week score: ${pct(sub.score)}</b> ${rpill(sub.score)}</div>
+    ${pLines.length?`<h2 style="margin:6px 0 0">Officer's plan</h2><div class="scroll"><table><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
+      ${pLines.map(l=>`<tr><td>${DAYN[l.d]} ${esc(shortD(ymd(addD(parse(sub.week_start),l.d))))}</td><td>${esc(l.loc||'–')}</td><td>${esc(lineName(l.it))}${l.it.t==='kpi'?'':' <span class="pill">Own plan</span>'}</td><td class="n">${l.it.target==null?'–':num(l.it.target)}</td><td class="n"><b>${l.done==null?'–':num(l.done)}</b></td></tr>`).join('')}
+    </tbody></table></div>`:''}
+    <div class="row"><b>Week score: ${pct(sub.score)}</b> ${rpill(sub.score)} <span class="small muted">Includes the officer's plan targets.</span></div>
+    ${(evs||[]).length?`<ol class="tl">${evs.map(e=>`<li class="ev-${esc(e.action)}"><b>${EVT_LABEL[e.action]||esc(e.action)}</b> by ${esc(e.by_name||'–')} <span class="muted small">· ${new Date(e.at).toLocaleString()}</span>${e.remarks?`<div class="sub">“${esc(e.remarks)}”</div>`:''}</li>`).join('')}</ol>`:''}
     ${sub.officer_remarks?`<div class="note"><b>Officer remarks:</b> ${esc(sub.officer_remarks)}</div>`:''}
     ${canAct?`<label class="f" for="mRem">Your remarks (required to send back)<textarea id="mRem"></textarea></label>
       <div class="row"><button class="btn" id="mOk">Approve</button><button class="btn warn" id="mBack">Send back to officer</button></div>`
@@ -576,6 +698,9 @@ async function exportExcel(){
     const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(rows);
     ws['!cols']=[8,24,22,20,12,12,11,48,26,14,14,10,7,7,7,7,7,7,30,10,12,10,12,18,30,30].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb, ws, 'KPI data');
+    const pls=(await fetchAll(()=>sb.from('week_plans').select('*').gte('week_start',c.F).lte('week_start',c.T))).filter(x=>subMap[x.officer_id+'|'+x.week_start]);
+    const prow=[]; pls.forEach(x=>{ const pp=name[x.officer_id]||{}; planItems(x).forEach(it=>prow.push({'CAM No':pp.employee_no||'', Officer:pp.full_name, 'Week start (Sat)':x.week_start, Date:ymd(addD(parse(x.week_start),x.day)), Day:DAYN[x.day], Location:x.location||'', Type:it.t==='kpi'?'KPI':'Own plan', Plan:lineName(it), Target:it.target??'', Done:it.t==='kpi'?'(see KPI data)':(it.done??'')})); });
+    if(prow.length){ prow.sort((a,b)=>(a.Officer||'').localeCompare(b.Officer||'')||a.Date.localeCompare(b.Date)); const w2=XLSX.utils.json_to_sheet(prow); w2['!cols']=[8,24,12,11,6,18,10,50,8,14].map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb, w2, 'Plan'); }
     XLSX.writeFile(wb, `AMHEC_QHSE_KPI_${c.label.replace(/\W+/g,'_')}.xlsx`);
   }catch(x){ err(x); }
 }
@@ -617,7 +742,7 @@ async function viewPlan(){
         <label class="f" for="pAdd" style="min-width:260px;flex:1">Add a KPI for this week<select id="pAdd"><option value="">Choose KPI</option>${free.map(k=>`<option value="${k.id}">${esc(k.code||'')} – ${esc(k.name.slice(0,90))}</option>`).join('')}</select></label>
         <label class="f" for="pAddT" style="width:130px">Target per period<input id="pAddT" type="number" min="0" step="any" value="1"></label>
         <button class="btn line" id="pAddB">Add</button>
-        <button class="btn line" id="pReset" ${st==='submitted'?'disabled':''}>Reset to standard KPIs</button></div>`}`;
+        <button class="btn line" id="pReset" ${st==='submitted'||rows.some(r=>r.actual!=null)?'disabled title="This week already has data, so it cannot be reset"':''}>Reset to standard KPIs</button></div>`}`;
     if(locked) return;
     const recalc=()=>sb.rpc('recalc_score',{p_officer:P.officer,p_week:P.week});
     $('#pSave').onclick=async()=>{ for(const r of rows){ const el=$('#t_'+r.id); if(!el) continue; const v=el.value===''?null:Number(el.value);
@@ -639,47 +764,56 @@ function confirmInline(btn,txt){ if(btn.dataset.armed){ return true; } btn.datas
 const PL = { week:null };
 async function viewMyPlan(){
   if(!PL.week) PL.week=ymd(addD(parse(thisWeek()),7));
-  const m=$('#main'); m.innerHTML=`<h1>My plan</h1><p class="lead">Plan your week: where you will be each day (Saturday to Thursday) and which of your KPIs you will do there. Pick from the lists; the target shows next to each KPI. Your manager sees all plans together in Team plans.</p>${ribbon(PL.week,'mp',2)}<div id="mpBody" class="empty">Loading your plan…</div>`;
+  const m=$('#main'); m.innerHTML=`<h1>My plan</h1><p class="lead">Plan your week: where you will be each day, what you will do and your own target. Use <b>+ Add KPI</b> to plan one of your KPIs; its target fills in by itself and you can change it. These targets count in your score; when a KPI has a higher target in the KPI Master, the higher one is used.</p>${ribbon(PL.week,'mp',2)}<div id="mpBody" class="empty">Loading your plan…</div>`;
   bindRibbon('mp',()=>PL.week,w=>PL.week=w,viewMyPlan);
   try{
     const {error:e0}=await sb.rpc('ensure_week_plan',{p_officer:S.me.id,p_week:PL.week}); if(e0) throw e0;
     const prevW=ymd(addD(parse(PL.week),-7));
-    const [{data,error},{data:prev,error:e2},{data:kp,error:e3}]=await Promise.all([
+    const [{data,error},{data:prev,error:e2},{data:kp,error:e3},{data:sub}]=await Promise.all([
       sb.from('week_plans').select('*').eq('officer_id',S.me.id).eq('week_start',PL.week),
       sb.from('week_plans').select('*').eq('officer_id',S.me.id).eq('week_start',prevW),
-      sb.from('week_kpis').select('id,kpi_id,kpi_code,kpi_name,period,measure,period_target,target').eq('officer_id',S.me.id).eq('week_start',PL.week).order('kpi_code')]);
+      sb.from('week_kpis').select('id,kpi_id,kpi_code,kpi_name,period,measure,period_target,target').eq('officer_id',S.me.id).eq('week_start',PL.week).order('kpi_code'),
+      sb.from('week_submissions').select('status').eq('officer_id',S.me.id).eq('week_start',PL.week).maybeSingle()]);
     if(error||e2||e3) throw (error||e2||e3);
+    const locked=['submitted','approved'].includes(sub?.status);
     const kpis=kp||[]; const kById=Object.fromEntries(kpis.map(k=>[k.kpi_id,k]));
-    const find=it=>kById[it.kpi_id]||kpis.find(k=>k.kpi_code===it.code&&k.kpi_name===it.name);
-    const toState=x=>({location:x?.location||'', items:(Array.isArray(x?.items)?x.items:[]).map(it=>{ const k=find(it); return k?k.kpi_id:null; }).filter(Boolean), note:x&&!Array.isArray(x.items)?(x.activity||''):''});
+    const fix=it=>{ if(it.t!=='kpi') return it; const k=kById[it.kpi_id]||kpis.find(x=>x.kpi_code===it.code&&x.kpi_name===it.name); return k?{...it,kpi_id:k.kpi_id}:{t:'text',text:lineName(it),target:it.target,done:it.done}; };
+    const toState=x=>{ const its=planItems(x).map(fix); return {location:x?.location||'', items:its.length?its:[{t:'text',text:'',target:null,done:null}]}; };
     const by=Object.fromEntries((data||[]).map(x=>[x.day,x]));
-    const st=DAYN.map((d,i)=>toState(by[i])); st.forEach(s=>{ if(!s.items.length) s.items=['']; });
+    const st=DAYN.map((d,i)=>toState(by[i]));
     const list=(S.lists||{}).sites||[]; const last=(data||[]).map(x=>x.updated_at).filter(Boolean).sort().pop();
     const b=$('#mpBody'); b.className='panel';
     const kOpts=cur=>`<option value="">Choose KPI</option>`+kpis.map(k=>`<option value="${k.kpi_id}" ${k.kpi_id===cur?'selected':''}>${esc(k.kpi_code||'')} – ${esc(k.kpi_name)}</option>`).join('');
+    const dis=locked?'disabled':'';
     const draw=()=>{
-      b.innerHTML=`${kpis.length?'':'<div class="note warn" style="margin-bottom:10px">No KPIs are assigned to you for this week yet, so the KPI list is empty. Ask QHSE to check your designation.</div>'}
-      <form id="mpF"><div class="scroll"><table class="mp"><thead><tr><th style="width:90px">Day</th><th style="width:200px">Location / client</th><th>KPI you will do <span class="muted small">and its target</span></th></tr></thead><tbody>
-      ${DAYN.map((d,i)=>`<tr><td><b>${d}</b><div class="sub">${esc(shortD(ymd(addD(parse(PL.week),i))))}</div></td>
-        <td><select data-l="${i}" aria-label="${d} location">${locOpts(list,st[i].location,'Choose location')}</select></td>
-        <td>${st[i].items.map((kid,j)=>{ const k=kById[kid]; return `<div class="pk"><select data-k="${i}" data-j="${j}" aria-label="${d} KPI ${j+1}">${kOpts(kid)}</select>
-            <span class="tgt">${k?'Target: '+esc(tgtText(k)):'<span class="muted">Target</span>'}</span>
-            <button type="button" class="x" data-rm="${i}" data-j="${j}" aria-label="Remove KPI" ${st[i].items.length<2&&!kid?'disabled':''}>×</button></div>`; }).join('')}
-          <button type="button" class="btn line sm" data-add="${i}">+ Add KPI</button>
-          ${st[i].note?`<div class="sub" style="margin-top:6px">Earlier note: ${esc(st[i].note)}</div>`:''}</td></tr>`).join('')}
+      b.innerHTML=`${locked?`<div class="note good" style="margin-bottom:10px">This week is ${sub.status==='approved'?'approved':'submitted'}, so the plan is locked.</div>`:''}
+      <form id="mpF"><div class="scroll"><table class="mp"><thead><tr><th style="width:84px">Day</th><th style="width:190px">Location / client</th><th>Write your plan</th><th style="width:96px">Target</th><th style="width:40px"></th></tr></thead><tbody>
+      ${DAYN.map((d,i)=>`<tr class="dayrow"><td><b>${d}</b><div class="sub">${esc(shortD(ymd(addD(parse(PL.week),i))))}</div></td>
+        <td><select data-l="${i}" ${dis} aria-label="${d} location">${locOpts(list,st[i].location,'Choose location')}</select></td>
+        <td colspan="3">${st[i].items.map((it,j)=>`<div class="pl">
+            ${it.t==='kpi'?`<select data-k="${i}" data-j="${j}" ${dis} aria-label="${d} KPI">${kOpts(it.kpi_id)}</select>`
+              :`<input type="text" data-tx="${i}" data-j="${j}" value="${esc(it.text||'')}" placeholder="Write your plan" ${dis} aria-label="${d} plan">`}
+            <input type="number" min="0" step="any" data-tg="${i}" data-j="${j}" value="${it.target??''}" placeholder="0" ${dis} aria-label="${d} target">
+            <button type="button" class="x" data-rm="${i}" data-j="${j}" ${dis} aria-label="Remove line">×</button></div>`).join('')}
+          ${locked?'':`<div class="row" style="gap:6px"><button type="button" class="btn line sm" data-addk="${i}">+ Add KPI</button><button type="button" class="btn line sm" data-addt="${i}">+ Add line</button></div>`}</td></tr>`).join('')}
       </tbody></table></div>
-      <div class="row" style="margin-top:12px"><button class="btn" type="submit">Save plan</button>
+      ${locked?'':`<div class="row" style="margin-top:12px"><button class="btn" type="submit">Save plan</button>
         ${(prev||[]).length?'<button class="btn line" type="button" id="mpCopy">Copy last week\'s plan</button>':''}
-        <span class="small muted">${last?'Last saved '+new Date(last).toLocaleString():'Not saved yet for this week.'}</span></div></form>`;
+        <span class="small muted">${last?'Last saved '+new Date(last).toLocaleString():'Not saved yet for this week.'}</span></div>`}</form>`;
+      if(locked) return;
       b.querySelectorAll('[data-l]').forEach(s=>s.onchange=()=>{ st[+s.dataset.l].location=s.value; });
-      b.querySelectorAll('[data-k]').forEach(s=>s.onchange=()=>{ st[+s.dataset.k].items[+s.dataset.j]=s.value; draw(); });
-      b.querySelectorAll('[data-add]').forEach(x=>x.onclick=()=>{ st[+x.dataset.add].items.push(''); draw(); });
-      b.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{ const s=st[+x.dataset.rm]; s.items.splice(+x.dataset.j,1); if(!s.items.length) s.items=['']; draw(); });
-      $('#mpCopy')&&($('#mpCopy').onclick=()=>{ (prev||[]).forEach(x=>{ const t=toState(x); if(!t.items.length) t.items=['']; st[x.day]=t; }); draw(); toast('Copied. Change what you need, then Save plan.'); });
+      b.querySelectorAll('[data-tx]').forEach(s=>s.oninput=()=>{ st[+s.dataset.tx].items[+s.dataset.j].text=s.value; });
+      b.querySelectorAll('[data-tg]').forEach(s=>s.oninput=()=>{ st[+s.dataset.tg].items[+s.dataset.j].target=numOrNull(s.value); });
+      b.querySelectorAll('[data-k]').forEach(s=>s.onchange=()=>{ const it=st[+s.dataset.k].items[+s.dataset.j]; const k=kById[s.value];
+        it.kpi_id=s.value||null; it.target=k?(k.measure==='percent'?100:(k.period_target==null?null:Number(k.period_target))):null; draw(); });
+      b.querySelectorAll('[data-addk]').forEach(x=>x.onclick=()=>{ st[+x.dataset.addk].items.push({t:'kpi',kpi_id:null,target:null,done:null}); draw(); });
+      b.querySelectorAll('[data-addt]').forEach(x=>x.onclick=()=>{ st[+x.dataset.addt].items.push({t:'text',text:'',target:null,done:null}); draw(); });
+      b.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{ const s=st[+x.dataset.rm]; s.items.splice(+x.dataset.j,1); if(!s.items.length) s.items=[{t:'text',text:'',target:null,done:null}]; draw(); });
+      $('#mpCopy')&&($('#mpCopy').onclick=()=>{ (prev||[]).forEach(x=>{ const t=toState(x); t.items=t.items.map(it=>({...it,done:null})); st[x.day]=t; }); draw(); toast('Copied. Change what you need, then Save plan.'); });
       $('#mpF').onsubmit=async e=>{ e.preventDefault(); const bt=e.submitter; bt.disabled=true;
-        const rows=st.map((s,i)=>{ const items=[...new Set(s.items.filter(Boolean))].map(id=>{ const k=kById[id]; return {kpi_id:id, code:k.kpi_code, name:k.kpi_name, target:tgtText(k)}; });
-          return {officer_id:S.me.id, week_start:PL.week, day:i, location:s.location||null, items,
-            activity:items.length?items.map(x=>`${x.code} – ${x.name} (${x.target})`).join('\n'):(s.note||null), updated_at:new Date().toISOString()}; });
+        const rows=st.map((s,i)=>{ const items=s.items.map(it=>{ if(it.t==='kpi'){ const k=kById[it.kpi_id]; if(!k) return null; return {t:'kpi',kpi_id:k.kpi_id,code:k.kpi_code,name:k.kpi_name,target:it.target,done:it.done??null}; }
+              const tx=(it.text||'').trim(); if(!tx&&it.target==null) return null; return {t:'text',text:tx||'Planned work',target:it.target,done:it.done??null}; }).filter(Boolean);
+          return {officer_id:S.me.id, week_start:PL.week, day:i, location:s.location||null, items, activity:items.length?items.map(it=>lineName(it)+(it.target!=null?` (target ${it.target})`:'')).join('\n'):null, updated_at:new Date().toISOString()}; });
         const {error}=await sb.from('week_plans').upsert(rows,{onConflict:'officer_id,week_start,day'});
         bt.disabled=false; if(error) return err(error); toast('Plan saved.'); viewMyPlan(); };
     };
@@ -700,7 +834,7 @@ async function viewPlans(){
     const ppl=planPeople(); const ids=new Set(ppl.map(p=>p.id));
     const pl=(await fetchAll(()=>sb.from('week_plans').select('*').eq('week_start',TP.week))).filter(x=>ids.has(x.officer_id));
     const map={}; pl.forEach(x=>{ (map[x.officer_id]||(map[x.officer_id]={}))[x.day]=x; });
-    const has=p=>Object.values(map[p.id]||{}).some(x=>x.location||x.activity);
+    const has=p=>Object.values(map[p.id]||{}).some(x=>x.location||planItems(x).length);
     const missing=ppl.filter(p=>!has(p));
     const days=DAYN.map((d,i)=>ymd(addD(parse(TP.week),i)));
     const b=$('#tpBody'); b.className='stack';
@@ -708,7 +842,7 @@ async function viewPlans(){
       ${missing.length?`<div class="note warn"><b>Not filled yet:</b> ${missing.map(p=>esc(p.full_name)).join(', ')}</div>`:''}
       <div class="panel"><div class="scroll"><table class="pt"><thead><tr><th>Officer</th>${DAYN.map((d,i)=>`<th><button type="button" class="dbtn" data-day="${i}">${d} ${parse(days[i]).getDate()} ${MON[parse(days[i]).getMonth()]}</button></th>`).join('')}</tr></thead><tbody>
       ${ppl.map(p=>`<tr data-s="${esc(((p.employee_no||'')+' '+(p.full_name||'')).toLowerCase())}"><td><div class="kpiname">${esc(p.full_name)}</div><div class="sub">${p.employee_no?'CAM '+esc(p.employee_no)+' · ':''}${esc(p.designation||'')}</div></td>
-        ${DAYN.map((d,i)=>{ const x=(map[p.id]||{})[i]; return `<td class="pd">${x&&(x.location||x.activity)?`${x.location?`<b>${esc(x.location)}</b>`:''}<div class="sub">${esc(x.activity||'')}</div>`:'<span class="muted">–</span>'}</td>`; }).join('')}</tr>`).join('')}
+        ${DAYN.map((d,i)=>{ const x=(map[p.id]||{})[i]; return `<td class="pd">${planCell(x)}</td>`; }).join('')}</tr>`).join('')}
       </tbody></table></div><p class="small muted" id="tpNo" hidden>No one matches your search.</p></div>`;
     b.querySelectorAll('.dbtn').forEach(bt=>bt.onclick=()=>openDay(TP.week,+bt.dataset.day,null,'team'));
     const filt=()=>{ const q=TP.q.trim().toLowerCase(); let n=0; b.querySelectorAll('tr[data-s]').forEach(tr=>{ const ok=!q||tr.dataset.s.includes(q); tr.hidden=!ok; if(ok) n++; }); $('#tpNo').hidden=n>0; };
@@ -717,10 +851,11 @@ async function viewPlans(){
       const q=TP.q.trim().toLowerCase(); const sel=ppl.filter(p=>!q||((p.employee_no||'')+' '+(p.full_name||'')).toLowerCase().includes(q));
       const mgr=e=>{ const x=[S.me,...S.team].find(p=>p.email===e); return x?x.full_name:(e||''); };
       const grid=sel.map(p=>({'CAM No':p.employee_no||'', Name:p.full_name, Designation:p.designation||'', Function:p.function||'', Manager:mgr(p.supervisor_email),
-        ...Object.fromEntries(DAYN.map((d,i)=>{ const x=(map[p.id]||{})[i]; return [`${d} ${shortD(days[i])}`, x?[x.location,x.activity].filter(Boolean).join(' – '):'']; }))}));
-      const list=[]; sel.forEach(p=>DAYN.forEach((d,i)=>{ const x=(map[p.id]||{})[i]; list.push({'CAM No':p.employee_no||'', Name:p.full_name, Designation:p.designation||'', Date:days[i], Day:d, 'Location / client':x?.location||'', Activity:x?.activity||''}); }));
+        ...Object.fromEntries(DAYN.map((d,i)=>{ const x=(map[p.id]||{})[i]; return [`${d} ${shortD(days[i])}`, x?planText(x):'']; }))}));
+      const list=[]; sel.forEach(p=>DAYN.forEach((d,i)=>{ const x=(map[p.id]||{})[i]; const its=planItems(x); const base={'CAM No':p.employee_no||'', Name:p.full_name, Designation:p.designation||'', Date:days[i], Day:d, 'Location / client':x?.location||''};
+        if(!its.length) list.push({...base, Type:'', Plan:'', Target:'', Done:''}); else its.forEach(it=>list.push({...base, Type:it.t==='kpi'?'KPI':'Own plan', Plan:lineName(it), Target:it.target??'', Done:it.done??''})); }));
       const wb=XLSX.utils.book_new(); const w1=XLSX.utils.json_to_sheet(grid); w1['!cols']=[8,24,22,20,20,28,28,28,28,28,28].map(w=>({wch:w}));
-      const w2=XLSX.utils.json_to_sheet(list); w2['!cols']=[8,24,22,11,6,20,50].map(w=>({wch:w}));
+      const w2=XLSX.utils.json_to_sheet(list); w2['!cols']=[8,24,22,11,6,20,10,50,8,8].map(w=>({wch:w}));
       XLSX.utils.book_append_sheet(wb,w1,'Week plan'); XLSX.utils.book_append_sheet(wb,w2,'By day');
       XLSX.writeFile(wb,`AMHEC_QHSE_Plan_${TP.week}.xlsx`); };
   }catch(x){ err(x); }
@@ -735,7 +870,7 @@ async function openDay(week, i, officerId, mode){
     const date=ymd(addD(parse(week),i)), label=`${DAYN[i]} ${shortD(date)} ${parse(date).getFullYear()}`;
     md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Day view">
       <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${esc(label)}</h2><div class="muted">${mode==='one'?esc(byId[officerId]?.full_name||''):'Whole team'} · Week of ${esc(wkLabel(week))}</div></div>
-      <div class="row"><div class="seg" role="group" aria-label="Show">${officerId?`<button type="button" data-m="one" class="${mode==='one'?'on':''}">One officer</button>`:''}<button type="button" data-m="team" class="${mode==='team'?'on':''}">Whole team</button></div>
+      <div class="row"><div class="seg" role="group" aria-label="Show">${officerId?`<button type="button" data-m="one" class="${mode==='one'?'on':''}">One officer</button>`:''}${isMgr()?`<button type="button" data-m="team" class="${mode==='team'?'on':''}">Whole team</button>`:''}</div>
       <button class="btn line sm" data-nav="-1" ${i===0?'disabled':''} aria-label="Previous day">‹</button><button class="btn line sm" data-nav="1" ${i===5?'disabled':''} aria-label="Next day">›</button><button class="btn line sm" id="dyClose">Close</button></div></div>
       <div id="dyBody" class="empty">Loading…</div></div>`;
     md.querySelector('#dyClose').onclick=close;
@@ -751,7 +886,8 @@ async function openDay(week, i, officerId, mode){
         const done=rows.filter(r=>(dayVal(r,i)!=null&&Number(r.daily[i])!==0)||refOf(r,i));
         const locs=[...new Set(rows.map(r=>refOf(r,i)).filter(Boolean))];
         body.className='stack';
-        body.innerHTML=`<div class="note"><b>Plan:</b> ${pl&&(pl.location||pl.activity)?`${pl.location?'<b>'+esc(pl.location)+'</b>':''}${pl.location&&pl.activity?' – ':''}${esc(pl.activity||'')}`:'No plan entered for this day.'}</div>
+        const kd=it=>{ if(it.t!=='kpi') return it.done; const r=rows.find(x=>x.kpi_id===it.kpi_id); return r&&dayVal(r,i)!=null?Number(r.daily[i]):(r?null:it.done); };
+        body.innerHTML=`<div class="note"><b>Plan for the day:</b> ${pl&&(pl.location||planItems(pl).length)?planCell(pl,kd):'No plan entered for this day.'}</div>
           ${locs.length?`<div class="chips"><span class="small muted">Locations reported:</span>${locs.map(l=>`<span class="chip">${esc(l)}</span>`).join('')}</div>`:''}
           ${done.length?`<div class="scroll"><table><thead><tr><th>KPI</th><th class="n">Done</th><th>Reference / location</th></tr></thead><tbody>
             ${done.map(r=>`<tr><td><div class="code">${esc(r.kpi_code||'')}</div>${esc(r.kpi_name)}</td><td class="n"><b>${dayVal(r,i)!=null?num(r.daily[i])+(r.measure==='percent'?'%':''):'–'}</b></td><td>${esc(refOf(r,i)||'–')}</td></tr>`).join('')}
@@ -768,7 +904,7 @@ async function openDay(week, i, officerId, mode){
         body.className='stack';
         body.innerHTML=`<div class="scroll"><table><thead><tr><th>Officer</th><th>Plan for the day</th><th>Locations reported</th><th class="n">KPIs done</th><th></th></tr></thead><tbody>
           ${rows.map(r=>`<tr><td><div class="kpiname">${esc(r.p.full_name)}</div><div class="sub">${r.p.employee_no?'CAM '+esc(r.p.employee_no)+' · ':''}${esc(r.p.designation||'')}</div></td>
-            <td>${r.plan&&(r.plan.location||r.plan.activity)?`${r.plan.location?'<b>'+esc(r.plan.location)+'</b>':''}<div class="sub">${esc(r.plan.activity||'')}</div>`:'<span class="muted">No plan</span>'}</td>
+            <td class="pd">${r.plan&&(r.plan.location||planItems(r.plan).length)?planCell(r.plan):'<span class="muted">No plan</span>'}</td>
             <td>${r.locs.length?esc(r.locs.join(', ')):'<span class="muted">–</span>'}</td>
             <td class="n">${r.kpis?`<b>${r.n}</b> of ${r.kpis}${r.tot?`<div class="sub">${num(r.tot)} entries</div>`:''}`:'<span class="muted">No KPIs yet</span>'}</td>
             <td><button class="btn line sm" data-o="${r.p.id}">Open</button></td></tr>`).join('')}
@@ -777,7 +913,7 @@ async function openDay(week, i, officerId, mode){
         body.querySelectorAll('[data-o]').forEach(bt=>bt.onclick=()=>{ officerId=bt.dataset.o; mode='one'; render(); });
         body.querySelector('#dyX').onclick=()=>{ const wb=XLSX.utils.book_new();
           const ws=XLSX.utils.json_to_sheet(rows.map(r=>({'CAM No':r.p.employee_no||'', Name:r.p.full_name, Designation:r.p.designation||'', Date:date, Day:DAYN[i],
-            'Planned location':r.plan?.location||'', 'Planned activity':r.plan?.activity||'', 'Locations reported':r.locs.join(', '), 'KPIs done':r.n, 'KPIs this week':r.kpis})));
+            'Planned location':r.plan?.location||'', 'Plan':planItems(r.plan).map(it=>lineName(it)+(it.target!=null?` (target ${it.target})`:'')).join('; '), 'Locations reported':r.locs.join(', '), 'KPIs done':r.n, 'KPIs this week':r.kpis})));
           ws['!cols']=[8,24,22,11,6,18,40,26,10,12].map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb,ws,'Day'); XLSX.writeFile(wb,`AMHEC_QHSE_Day_${date}.xlsx`); };
       }
     }catch(x){ err(x); body.innerHTML='<b>Could not load this day</b>Check your connection and try again.'; }
