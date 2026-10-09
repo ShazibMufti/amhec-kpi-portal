@@ -329,14 +329,17 @@ async function refreshPending(){
   const {count}=await sb.from('week_submissions').select('id',{count:'exact',head:true}).eq('status','submitted').neq('officer_id',S.me.id);
   const el=$('#pc'); if(el){ el.hidden=!count; el.textContent=count||''; }
 }
+function go(k){ S.tab=k; try{ if(location.hash!=='#'+k) history.pushState(null,'','#'+k); }catch(_){} route(); window.scrollTo(0,0); }
+document.addEventListener('click',e=>{ const a=e.target.closest('a[href^="#"]'); if(!a||!S.me) return; const k=a.getAttribute('href').slice(1); if(!TITLES[k]) return; e.preventDefault(); go(k); });
 function route(){
-  let t=(location.hash||'#my').slice(1).split('/')[0];
+  let t=S.tab||(location.hash||'#my').slice(1).split('/')[0];
   const allowed=['my','myplan']; if(isMgr()) allowed.push('approvals','dashboard','plan','plans'); if(isAdmin()) allowed.push('setup');
   if(!allowed.includes(t)) t='my';
   document.querySelectorAll('.side nav a').forEach(a=>a.classList.toggle('on',a.dataset.t===t)); 
   ({my:viewMy, myplan:viewMyPlan, approvals:viewApprovals, dashboard:viewDashboard, plan:viewPlan, plans:viewPlans, setup:viewSetup})[t]();
 }
-window.addEventListener('hashchange',()=>{ if(S.me) route(); });
+window.addEventListener('hashchange',()=>{ S.tab=null; if(S.me) route(); });
+window.addEventListener('popstate',()=>{ S.tab=null; if(S.me) route(); });
 
 // ---------- shared: week ribbon (Sat–Thu) ----------
 function ribbon(week, id, ahead=0){
