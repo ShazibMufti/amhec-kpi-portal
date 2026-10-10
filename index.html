@@ -168,6 +168,10 @@ ol.tl li{position:relative;font-size:13.5px}
 ol.tl li::before{content:"";position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#a5b4fc}
 ol.tl li.ev-approved::before{background:var(--good)} ol.tl li.ev-returned::before{background:var(--bad)} ol.tl li.ev-submitted::before{background:var(--brand2)}
 details.perf .tiles{margin:0}
+.evb{margin-top:6px;border:1px dashed #c7d2fe;background:#fff;color:var(--muted);border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer}
+.evb:hover{color:var(--brand);border-color:var(--brand)}
+.evb.on{border-style:solid;background:#eef2ff;color:var(--brand);font-weight:600}
+.evbox{margin-top:6px;padding:6px 8px;border-left:3px solid #a5b4fc;background:#f8fafc;border-radius:4px;display:grid;gap:2px}
 .pk{display:grid;grid-template-columns:minmax(0,1fr) 150px 34px;gap:6px;align-items:center;margin-bottom:6px}
 .pk .tgt{font-size:12.5px;color:var(--brand);font-weight:600}
 .pk .x{height:34px;border:1px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer;font-size:18px;color:var(--muted)}
@@ -198,7 +202,7 @@ const LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALYAAADICAYAAABF2Bu1
 const DAYS = 6; // working days per week, Sat–Thu
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const FUNCTIONS = ['HSE Operations','Quality Assurance','Journey Management','QHSE Training','Rig Move HSE Operations','QHSE Operations','Premises Safety / Security'];
-const DESIGNATIONS = ['Officer HSE','Senior Officer HSE','Supervisor HSE','Superintendent HSE','Manager HSE','Manager Quality & HSES Programs','Coordinator QHSE Training','Document Controller','DATA MANAGEMENT & QHSE DIGITALIZATION','ADMINISTRATOR HSE','MEDIC','RIG SUPERVISOR','RIG SUPERINTENDENT','Champion Journey Management','JM ADMIN','PREMISES HEAD','PREMISES SUPERVISOR'];
+const DESIGNATIONS = ['Officer HSE','Senior Officer HSE','Supervisor HSE','Superintendent HSE','Manager HSE','Manager Quality & HSES Programs','Coordinator QHSE Training','Document Controller','Head of QHSE','DATA MANAGEMENT & QHSE DIGITALIZATION','ADMINISTRATOR HSE','MEDIC','RIG SUPERVISOR','RIG SUPERINTENDENT','Champion Journey Management','JM ADMIN','PREMISES HEAD','PREMISES SUPERVISOR'];
 const ROLE = {officer:'Officer',supervisor:'Manager',admin:'Admin'};
 const desigOf = v => { const t=String(v||'').trim(); return DESIGNATIONS.find(d=>d.toLowerCase()===t.toLowerCase())||t; };
 const PERIODS = {day:'per day',week:'per week',month:'per month',event:'per month (event-driven)',bimonth:'per 2 months',quarter:'per quarter',half:'per half-year',year:'per year'};
@@ -365,6 +369,35 @@ const planCell = (x, kdone) => { const its=planItems(x); if(!x||(!x.location&&!i
 const planText = x => { const its=planItems(x); return [x?.location, ...its.map(it=>lineName(it)+(it.target!=null?` (target ${it.target})`:'')+(it.done!=null?` [done ${it.done}]`:''))].filter(Boolean).join('\n'); };
 function weeksOfMonth(y,m){ let s=satOf(new Date(y,m,1)); if(thuOf(ymd(s)).getMonth()!==m) s=addD(s,7); const out=[]; while(thuOf(ymd(s)).getMonth()===m){ out.push(ymd(s)); s=addD(s,7); } return out; }
 const EVT_LABEL={submitted:'Submitted',approved:'Approved',returned:'Returned'};
+const evOf = r => { const e=r&&r.evidence; return {note:(e&&e.note)||'', links:Array.isArray(e&&e.links)?e.links.filter(Boolean):[]}; };
+const evCount = e => (e.note?1:0)+e.links.length;
+const isUrl = v => /^https?:\/\/[^\s]+\.[^\s]+/i.test(String(v||'').trim());
+const linkLabel = u => { try{ const x=new URL(u); const h=x.hostname; const f=decodeURIComponent(x.pathname.split('/').filter(Boolean).pop()||''); return (/sharepoint|onedrive|1drv/i.test(h)?(/onedrive|1drv|-my\./i.test(h)?'OneDrive':'SharePoint'):h)+(f&&f.length<60?' · '+f:''); }catch(_){ return u; } };
+const evView = e => `${e.note?`<div class="sub" style="white-space:pre-wrap">${esc(e.note)}</div>`:''}${e.links.map(u=>`<div><a class="link" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(linkLabel(u))}</a></div>`).join('')}`;
+function openEvidence(r, cur, locked, onDone){
+  const st={note:cur.note, links:cur.links.length?[...cur.links]:['']};
+  const md=document.createElement('div'); md.className='modal';
+  const draw=()=>{ md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Evidence" style="max-width:620px">
+    <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Evidence</h2><div class="muted small">${esc(r.kpi_code||'')} – ${esc(r.kpi_name)}</div></div><button class="btn line sm" id="evX" type="button">Close</button></div>
+    ${locked?(evCount(cur)?evView(cur):'<p class="muted">No evidence added for this KPI.</p>'):`
+    <label class="f" for="evN">Note (optional)<textarea id="evN" placeholder="e.g. Inspection report no., what was checked">${esc(st.note)}</textarea></label>
+    <div class="stack" style="gap:6px"><span class="small" style="font-weight:600">SharePoint or OneDrive links</span>
+      ${st.links.map((u,j)=>`<div class="row" style="gap:6px;flex-wrap:nowrap"><input type="url" data-lk="${j}" value="${esc(u)}" placeholder="Paste SharePoint or OneDrive link" style="flex:1"><button type="button" class="x" data-rmk="${j}" aria-label="Remove link">×</button></div>`).join('')}
+      <div><button type="button" class="btn line sm" id="evAdd">+ Add link</button></div>
+      <p class="small muted" style="margin:0">Share the file with people in AMHEC so your manager can open it.</p></div>
+    <div class="row"><button class="btn" id="evOk" type="button">Done</button><span class="small muted">Saved when you click Save draft or Submit.</span></div>`}</div>`;
+    md.querySelector('#evX').onclick=()=>md.remove();
+    if(locked) return;
+    md.querySelector('#evN').oninput=e=>st.note=e.target.value;
+    md.querySelectorAll('[data-lk]').forEach(i=>i.oninput=()=>st.links[+i.dataset.lk]=i.value);
+    md.querySelectorAll('[data-rmk]').forEach(b=>b.onclick=()=>{ st.links.splice(+b.dataset.rmk,1); if(!st.links.length) st.links=['']; draw(); });
+    md.querySelector('#evAdd').onclick=()=>{ st.links.push(''); draw(); };
+    md.querySelector('#evOk').onclick=()=>{ const links=st.links.map(x=>x.trim()).filter(Boolean); const bad=links.filter(x=>!isUrl(x));
+      if(bad.length) return toast('This is not a link: '+bad[0].slice(0,40)+'. Paste the full SharePoint or OneDrive link starting with https://');
+      onDone({note:st.note.trim(), links}); md.remove(); };
+  };
+  document.body.appendChild(md); md.addEventListener('click',e=>{ if(e.target===md) md.remove(); }); draw();
+}
 
 // ---------- My KPIs ----------
 async function viewMy(){
@@ -393,9 +426,11 @@ async function viewMy(){
     const dayVals = r => Array.isArray(r.daily) ? r.daily : ['','','','','',''];
     const isDayRow = r => r.measure==='percent' || r.period_target==null || ['day','week','event'].includes(r.period);
     const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn ${i===todayIdx?'td':''}" data-day="${i}" title="Open ${d}">${d} ${addD(parse(S.week),i).getDate()}</button>`).join('')}<span class="tot">Week</span></div>`;
+    const EV=Object.fromEntries(rows.map(r=>[r.id,evOf(r)]));
+    const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">🔗 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
     const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')} · ${esc(r.category||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>`;
     const dayRow = r => { const dv=dayVals(r), pc=r.measure==='percent';
-      return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div></td>
+      return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div>${evBtn(r)}</td>
         <td><div class="dg">${DAYN.map((d,i)=>{ const ref=refOf(r,i); return `<div class="dc"><input type="number" min="0" ${pc?'max="100"':''} step="any" class="dv ${i===todayIdx?'td':''}" data-r="${r.id}" data-i="${i}" value="${esc(dv[i]??'')}" placeholder="${pc?'%':'0'}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d}">
             <select class="lc ${ref?'set':''}" data-r="${r.id}" data-i="${i}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d} location">${locOpts(locList(),ref)}</select></div>`; }).join('')}
           <b class="tot" id="tot_${r.id}">${pc?(r.actual==null?'–':num(r.actual)+'%'):num(Number(r.actual)||0)}</b></div></td></tr>`; };
@@ -410,7 +445,7 @@ async function viewMy(){
     const pRow = (g,r) => { const pv=before(r);
       const cells=cols[g].map(c=>{ if(g==='mo') return c.cur?pInput(r):`<span class="pv">${c.fut?'·':num(wkSum(r,c.key))}</span>`;
           const v=monSum(r,c.key); return `<span class="pv ${c.cur?'cm':''}" ${c.cur?`id="cm_${r.id}" data-base="${v}"`:''}>${c.fut?'·':num(v+(c.cur?(Number(r.actual)||0):0))}</span>`; }).join('');
-      return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div></td>
+      return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div>${evBtn(r)}</td>
         <td><div class="pgg" style="--n:${cols[g].length}">${cells}${g==='mo'?'':pInput(r)}<b class="tot" id="pt_${r.id}" data-prev="${pv}">${num(pv+(Number(r.actual)||0))}${r.period_target!=null?`<small>of ${num(r.period_target)}</small>`:''}</b></div></td></tr>`; };
     const grp = (title,list,head,rowFn,open,note) => list.length?`<details class="grp" ${open?'open':''}><summary><span>${title} <span class="muted small">(${list.length})</span></span></summary><div class="in scroll">${note?`<p class="small muted" style="margin:0 0 6px">${note}</p>`:''}<table class="kt">
       <thead><tr><th>KPI and target</th><th>${head}</th></tr></thead><tbody>${list.map(rowFn).join('')}</tbody></table></div></details>`:'';
@@ -435,7 +470,7 @@ async function viewMy(){
       </tbody></table></div></details>`
       : `<div class="note" style="margin-bottom:12px">No plan for this week. <a class="link" href="#myplan">Make your plan</a> – where you go each day, what you will do and your targets.</div>`;
     const filled = rows.filter(r=>r.actual!=null).length;
-    const evOf = k => evs.filter(e=>e.week_start===k);
+    const evsOf = k => evs.filter(e=>e.week_start===k);
     if(!rows.length&&!planRows.length){ body.className='empty'; body.innerHTML=`<b>No KPIs assigned for this week</b>KPIs come from your designation (${esc(S.me.designation||'not set')}). Ask QHSE to check your designation.`; return; }
     body.innerHTML = `<div class="tiles" style="margin-bottom:16px">
         <div class="tile"><span class="k">This week's score</span><span class="v" style="color:${col(sub?.score)}">${pct(sub?.score)}</span><span class="s">${rpill(sub?.score)}</span></div>
@@ -461,10 +496,12 @@ async function viewMy(){
           </div>
         </form>
         <div class="panel" style="margin-top:16px"><h2>My recent weeks</h2>${hist.length?`<table class="rw"><tbody>${hist.map(h=>`<tr class="click" data-w="${h.week_start}"><td>${esc(wkLabel(h.week_start))}</td><td>${spill(h.status)}</td><td class="n"><b>${pct(h.score)}</b></td><td class="n"><button type="button" class="btn line sm" data-tl="${h.week_start}">History</button></td></tr>
-          <tr class="tlrow" id="tl_${h.week_start}" hidden><td colspan="4"><ol class="tl">${evOf(h.week_start).map(e=>`<li class="ev-${esc(e.action)}"><b>${EVT_LABEL[e.action]||esc(e.action)}</b> by ${esc(e.by_name||'–')} <span class="muted small">· ${new Date(e.at).toLocaleString()}</span>${e.remarks?`<div class="sub">“${esc(e.remarks)}”</div>`:''}</li>`).join('')||'<li class="muted">No history recorded.</li>'}</ol></td></tr>`).join('')}</tbody></table>`:'<p class="muted small">Submitted weeks appear here.</p>'}</div>`;
+          <tr class="tlrow" id="tl_${h.week_start}" hidden><td colspan="4"><ol class="tl">${evsOf(h.week_start).map(e=>`<li class="ev-${esc(e.action)}"><b>${EVT_LABEL[e.action]||esc(e.action)}</b> by ${esc(e.by_name||'–')} <span class="muted small">· ${new Date(e.at).toLocaleString()}</span>${e.remarks?`<div class="sub">“${esc(e.remarks)}”</div>`:''}</li>`).join('')||'<li class="muted">No history recorded.</li>'}</ol></td></tr>`).join('')}</tbody></table>`:'<p class="muted small">Submitted weeks appear here.</p>'}</div>`;
     document.querySelectorAll('tr[data-w]').forEach(tr=>tr.onclick=e=>{ if(e.target.closest('[data-tl]')) return; S.week=tr.dataset.w; viewMy();});
     document.querySelectorAll('[data-tl]').forEach(b=>b.onclick=()=>{ const r=$('#tl_'+b.dataset.tl); r.hidden=!r.hidden; });
     document.querySelectorAll('#myBody .dbtn').forEach(b=>b.onclick=()=>openDay(S.week,+b.dataset.day,S.me.id,'one'));
+    document.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>openEvidence(byId[b.dataset.ev], EV[b.dataset.ev], locked, v=>{ EV[b.dataset.ev]=v; const n=evCount(v);
+      b.classList.toggle('on',!!n); b.textContent='🔗 '+(n?`Evidence (${n})`:'Add evidence'); toast('Evidence added. Click Save draft to keep it.'); }));
     const daysOf = id => [...document.querySelectorAll(`input.dv[data-r="${id}"]`)].map(x=>x.value);
     const refsOf = id => [...document.querySelectorAll(`select.lc[data-r="${id}"]`)].map(x=>x.value);
     document.querySelectorAll('select.lc').forEach(sel=>sel.addEventListener('change',()=>sel.classList.toggle('set',!!sel.value)));
@@ -482,9 +519,9 @@ async function viewMy(){
       e.preventDefault(); const submit = e.submitter?.dataset.submit==='1';
       const vals={}; let bad=false;
       rows.forEach(r=>{ const wv=document.querySelector(`input.wv[data-r="${r.id}"]`);
-        if(wv){ vals[r.id]={v:wv.value===''?'':String(Number(wv.value)), ref:[refsOf(r.id)[0]||'','','','','','']}; return; }
+        if(wv){ vals[r.id]={v:wv.value===''?'':String(Number(wv.value)), ref:[refsOf(r.id)[0]||'','','','','',''], ev:EV[r.id]}; return; }
         const v=daysOf(r.id); if(r.measure==='percent'&&v.some(x=>x!==''&&Number(x)>100)) bad=true;
-        vals[r.id] = {v:v.map(x=>x===''?'':String(Number(x))), ref:refsOf(r.id)}; });
+        vals[r.id] = {v:v.map(x=>x===''?'':String(Number(x))), ref:refsOf(r.id), ev:EV[r.id]}; });
       if(bad) return toast('Percentage KPIs must be between 0 and 100.');
       const plan={}; DAYN.forEach((d,i)=>{ const its=planItems(pl[i]); if(!its.length) return;
         plan[i]=its.map((it,j)=>{ const el=document.querySelector(`input.pd[data-d="${i}"][data-j="${j}"]`); return el?el.value:null; }); });
@@ -545,7 +582,7 @@ async function openReview(sub, after){
     <div class="row">${spill(sub.status)}<button class="btn line sm" id="mClose">Close</button></div></div>
     <div class="scroll"><table><thead><tr><th>KPI</th><th>Target</th><th>${dayHeadRO(sub.week_start)}</th><th>Weekly achievement</th></tr></thead><tbody>
     ${rows.map(r=>{ const wk=(r.period==='day'||r.period==='week'||r.measure==='percent')&&r.target!=null;
-      return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div></td><td class="small">${esc(tgtText(r))}</td>
+      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">🔗 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
       <td>${dayRO(r)}</td><td>${wk?meter(ach(r.direction,r.target,r.actual,r.measure)):'<span class="sub">Counts in '+(r.period==='event'?'month':esc(r.period))+' score</span>'}</td></tr>`;}).join('')}
     </tbody></table></div>
     ${pLines.length?`<h2 style="margin:6px 0 0">Officer's plan</h2><div class="scroll"><table><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
@@ -685,7 +722,7 @@ async function exportExcel(){
     const ids=c.team.map(p=>p.id); const name=Object.fromEntries(c.team.map(p=>[p.id,p]));
     const [subs,kp]=await Promise.all([
       fetchAll(()=>sb.from('week_submissions').select('*').gte('week_start',c.F).lte('week_start',c.T).neq('status','draft')),
-      fetchAll(()=>sb.from('week_kpis').select('officer_id,week_start,kpi_code,kpi_name,category,frequency,period,measure,direction,period_target,target,actual,daily,daily_ref').gte('week_start',c.F).lte('week_start',c.T))]);
+      fetchAll(()=>sb.from('week_kpis').select('officer_id,week_start,kpi_code,kpi_name,category,frequency,period,measure,direction,period_target,target,actual,daily,daily_ref,evidence').gte('week_start',c.F).lte('week_start',c.T))]);
     const subMap=Object.fromEntries(subs.filter(s=>ids.includes(s.officer_id)).map(s=>[s.officer_id+'|'+s.week_start,s]));
     const rows=kp.filter(k=>subMap[k.officer_id+'|'+k.week_start]).map(k=>{ const p=name[k.officer_id]||{}, s=subMap[k.officer_id+'|'+k.week_start];
       const wk=(k.period==='day'||k.period==='week'||k.measure==='percent')&&k.target!=null;
@@ -694,12 +731,12 @@ async function exportExcel(){
         'Weekly target':k.target==null?'':Math.round(k.target*100)/100,
         ...Object.fromEntries(DAYN.map((d,i)=>[d+' '+shortD(ymd(addD(parse(k.week_start),i))).split(' ')[0], Array.isArray(k.daily)&&k.daily[i]!==''&&k.daily[i]!=null?Number(k.daily[i]):''])),
         'Reference/Location':DAYN.map((d,i)=>refOf(k,i)?d+': '+refOf(k,i):'').filter(Boolean).join('; '),
-        'Done this week':Number(k.actual)||0, 'Weekly achievement %':wk?Math.round(ach(k.direction,k.target,k.actual,k.measure)*100):'',
+        'Done this week':Number(k.actual)||0, Evidence:(()=>{ const e=evOf(k); return [e.note,...e.links].filter(Boolean).join('\n'); })(), 'Weekly achievement %':wk?Math.round(ach(k.direction,k.target,k.actual,k.measure)*100):'',
         'Week score %':s.score!=null?Math.round(s.score*100):'', Status:s.status, 'Reviewed by':s.reviewed_by||'', 'Manager remarks':s.supervisor_remarks||'', 'Officer remarks':s.officer_remarks||''}; })
       .sort((a,b)=>(a.Officer||'').localeCompare(b.Officer||'')||a['Week start (Sat)'].localeCompare(b['Week start (Sat)'])||(a['KPI ID']||'').localeCompare(b['KPI ID']||''));
     if(!rows.length) return toast('No submitted weeks in this period to export.');
     const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(rows);
-    ws['!cols']=[8,24,22,20,12,12,11,48,26,14,14,10,7,7,7,7,7,7,30,10,12,10,12,18,30,30].map(w=>({wch:w}));
+    ws['!cols']=[8,24,22,20,12,12,11,48,26,14,14,10,7,7,7,7,7,7,30,10,40,12,10,12,18,30,30].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb, ws, 'KPI data');
     const pls=(await fetchAll(()=>sb.from('week_plans').select('*').gte('week_start',c.F).lte('week_start',c.T))).filter(x=>subMap[x.officer_id+'|'+x.week_start]);
     const prow=[]; pls.forEach(x=>{ const pp=name[x.officer_id]||{}; planItems(x).forEach(it=>prow.push({'CAM No':pp.employee_no||'', Officer:pp.full_name, 'Week start (Sat)':x.week_start, Date:ymd(addD(parse(x.week_start),x.day)), Day:DAYN[x.day], Location:x.location||'', Type:it.t==='kpi'?'KPI':'Own plan', Plan:lineName(it), Target:it.target??'', Done:it.t==='kpi'?'(see KPI data)':(it.done??'')})); });
