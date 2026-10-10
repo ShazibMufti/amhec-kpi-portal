@@ -147,7 +147,9 @@ details.grp>.in{padding:0 14px 12px}
 .seg button.on{background:var(--brand);color:#fff}
 table.mp td{vertical-align:top}
 .pl{display:grid;grid-template-columns:minmax(0,1fr) 96px 34px;gap:6px;align-items:center;margin-bottom:6px}
-.pl input[type=text]::placeholder{color:#94a3b8;font-style:italic}
+.pl.note{grid-template-columns:minmax(0,1fr) 34px}
+.pl textarea{min-height:44px}
+.pl textarea::placeholder{color:#94a3b8;font-style:italic}
 .x{height:36px;border:1px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer;font-size:18px;color:var(--muted)}
 .x[disabled]{opacity:.35;cursor:default}
 .pgg{display:grid;grid-template-columns:repeat(var(--n),minmax(54px,1fr)) minmax(80px,auto) 72px;gap:6px;align-items:center;min-width:calc(var(--n)*60px + 160px)}
@@ -171,6 +173,10 @@ details.perf .tiles{margin:0}
 .evb{margin-top:6px;border:1px dashed #c7d2fe;background:#fff;color:var(--muted);border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer}
 .evb:hover{color:var(--brand);border-color:var(--brand)}
 .evb.on{border-style:solid;background:#eef2ff;color:var(--brand);font-weight:600}
+.evf{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#f8fafc}
+.evf .x{height:28px;width:28px}
+label.attach{display:inline-flex;align-items:center;gap:6px;width:max-content;cursor:pointer}
+details.evmore summary{cursor:pointer;color:var(--brand);font-weight:500}
 .evbox{margin-top:6px;padding:6px 8px;border-left:3px solid #a5b4fc;background:#f8fafc;border-radius:4px;display:grid;gap:2px}
 .pk{display:grid;grid-template-columns:minmax(0,1fr) 150px 34px;gap:6px;align-items:center;margin-bottom:6px}
 .pk .tgt{font-size:12.5px;color:var(--brand);font-weight:600}
@@ -363,7 +369,7 @@ const numOrNull = v => { if(v===null||v===undefined||v==='') return null; const 
 function planItems(x){ if(!x) return [];
   if(Array.isArray(x.items)&&x.items.length) return x.items.map(it=>({t:it.t||'kpi', text:it.text||'', kpi_id:it.kpi_id||null, code:it.code||'', name:it.name||'', target:numOrNull(it.target), done:numOrNull(it.done)}));
   return x.activity?[{t:'text', text:x.activity, target:null, done:null}]:[]; }
-const lineName = it => it.t==='text' ? (it.text||'Planned work') : `${it.code?it.code+' – ':''}${it.name||''}`;
+const lineName = it => it.t==='note' ? '💬 '+(it.text||'') : it.t==='text' ? (it.text||'Planned work') : `${it.code?it.code+' – ':''}${it.name||''}`;
 const planCell = (x, kdone) => { const its=planItems(x); if(!x||(!x.location&&!its.length)) return '<span class="muted">–</span>';
   return `${x.location?`<b>${esc(x.location)}</b>`:''}${its.map((it,j)=>{ const d=kdone?kdone(it):it.done; return `<div class="sub">• ${esc(lineName(it))}${it.target!=null?` <span class="tg">Target ${num(it.target)}</span>`:''}${d!=null?` <span class="dn">done ${num(d)}</span>`:''}</div>`; }).join('')}`; };
 const planText = x => { const its=planItems(x); return [x?.location, ...its.map(it=>lineName(it)+(it.target!=null?` (target ${it.target})`:'')+(it.done!=null?` [done ${it.done}]`:''))].filter(Boolean).join('\n'); };
@@ -373,28 +379,46 @@ const evOf = r => { const e=r&&r.evidence; return {note:(e&&e.note)||'', links:A
 const evCount = e => (e.note?1:0)+e.links.length;
 const isUrl = v => /^https?:\/\/[^\s]+\.[^\s]+/i.test(String(v||'').trim());
 const linkLabel = u => { try{ const x=new URL(u); const h=x.hostname; const f=decodeURIComponent(x.pathname.split('/').filter(Boolean).pop()||''); return (/sharepoint|onedrive|1drv/i.test(h)?(/onedrive|1drv|-my\./i.test(h)?'OneDrive':'SharePoint'):h)+(f&&f.length<60?' · '+f:''); }catch(_){ return u; } };
-const evView = e => `${e.note?`<div class="sub" style="white-space:pre-wrap">${esc(e.note)}</div>`:''}${e.links.map(u=>`<div><a class="link" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(linkLabel(u))}</a></div>`).join('')}`;
+const fileIcon = n => /\.(png|jpe?g|gif|webp|heic)$/i.test(n)?'🖼️':/\.pdf$/i.test(n)?'📕':/\.(xlsx?|csv)$/i.test(n)?'📗':/\.(docx?)$/i.test(n)?'📘':/\.(pptx?)$/i.test(n)?'📙':'📄';
+const evLink = l => typeof l==='string' ? `<a class="link" href="${esc(l)}" target="_blank" rel="noopener noreferrer">🔗 ${esc(linkLabel(l))}</a>`
+  : `<a class="link" href="#" data-file="${esc(l.path)}">${fileIcon(l.name)} ${esc(l.name)}</a>${l.size?` <span class="muted small">${Math.max(1,Math.round(l.size/1024))} KB</span>`:''}`;
+const evView = e => `${e.note?`<div class="sub" style="white-space:pre-wrap">${esc(e.note)}</div>`:''}${e.links.map(l=>`<div>${evLink(l)}</div>`).join('')}`;
+const evText = e => [e.note, ...e.links.map(l=>typeof l==='string'?l:'File: '+l.name)].filter(Boolean).join('\n');
+const EV_MAX = 10*1024*1024;
+document.addEventListener('click', async e=>{ const a=e.target.closest('a[data-file]'); if(!a) return; e.preventDefault();
+  const w=window.open('','_blank'); const {data,error}=await sb.storage.from('evidence').createSignedUrl(a.dataset.file, 600);
+  if(error||!data?.signedUrl){ if(w) w.close(); return toast('Could not open the file. Check your connection.'); }
+  if(w) w.location=data.signedUrl; else location.href=data.signedUrl; });
 function openEvidence(r, cur, locked, onDone){
-  const st={note:cur.note, links:cur.links.length?[...cur.links]:['']};
+  const st={note:cur.note, files:cur.links.filter(l=>typeof l!=='string'), urls:cur.links.filter(l=>typeof l==='string'), busy:0};
   const md=document.createElement('div'); md.className='modal';
   const draw=()=>{ md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Evidence" style="max-width:620px">
     <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Evidence</h2><div class="muted small">${esc(r.kpi_code||'')} – ${esc(r.kpi_name)}</div></div><button class="btn line sm" id="evX" type="button">Close</button></div>
     ${locked?(evCount(cur)?evView(cur):'<p class="muted">No evidence added for this KPI.</p>'):`
-    <label class="f" for="evN">Note (optional)<textarea id="evN" placeholder="e.g. Inspection report no., what was checked">${esc(st.note)}</textarea></label>
-    <div class="stack" style="gap:6px"><span class="small" style="font-weight:600">SharePoint or OneDrive links</span>
-      ${st.links.map((u,j)=>`<div class="row" style="gap:6px;flex-wrap:nowrap"><input type="url" data-lk="${j}" value="${esc(u)}" placeholder="Paste SharePoint or OneDrive link" style="flex:1"><button type="button" class="x" data-rmk="${j}" aria-label="Remove link">×</button></div>`).join('')}
-      <div><button type="button" class="btn line sm" id="evAdd">+ Add link</button></div>
-      <p class="small muted" style="margin:0">Share the file with people in AMHEC so your manager can open it.</p></div>
-    <div class="row"><button class="btn" id="evOk" type="button">Done</button><span class="small muted">Saved when you click Save draft or Submit.</span></div>`}</div>`;
+    <div class="stack" style="gap:8px"><span class="small" style="font-weight:600">Attached files</span>
+      ${st.files.length?st.files.map((f,j)=>`<div class="evf">${evLink(f)}<button type="button" class="x" data-rmf="${j}" aria-label="Remove file">×</button></div>`).join(''):'<p class="small muted" style="margin:0">No files yet.</p>'}
+      ${st.busy?`<p class="small" style="margin:0">Uploading ${st.busy} file(s)…</p>`:''}
+      <label class="btn line attach" for="evFile">📎 Attach file<input id="evFile" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt" hidden></label>
+      <p class="small muted" style="margin:0">Photos, PDF, Word, Excel or PowerPoint, up to 10 MB each. The file becomes a link your manager can open.</p></div>
+    <label class="f" for="evN">Comment (optional)<textarea id="evN" placeholder="e.g. Inspection report no., what was checked">${esc(st.note)}</textarea></label>
+    <details class="evmore" ${st.urls.length?'open':''}><summary class="small">Or paste a SharePoint / OneDrive link</summary>
+      ${(st.urls.length?st.urls:['']).map((u,j)=>`<div class="row" style="gap:6px;flex-wrap:nowrap;margin-top:6px"><input type="url" data-lk="${j}" value="${esc(u)}" placeholder="https://…sharepoint.com/…" style="flex:1"><button type="button" class="x" data-rmk="${j}" aria-label="Remove link">×</button></div>`).join('')}
+    </details>
+    <div class="row"><button class="btn" id="evOk" type="button" ${st.busy?'disabled':''}>Done</button><span class="small muted">Saved when you click Save draft or Submit.</span></div>`}</div>`;
     md.querySelector('#evX').onclick=()=>md.remove();
     if(locked) return;
     md.querySelector('#evN').oninput=e=>st.note=e.target.value;
-    md.querySelectorAll('[data-lk]').forEach(i=>i.oninput=()=>st.links[+i.dataset.lk]=i.value);
-    md.querySelectorAll('[data-rmk]').forEach(b=>b.onclick=()=>{ st.links.splice(+b.dataset.rmk,1); if(!st.links.length) st.links=['']; draw(); });
-    md.querySelector('#evAdd').onclick=()=>{ st.links.push(''); draw(); };
-    md.querySelector('#evOk').onclick=()=>{ const links=st.links.map(x=>x.trim()).filter(Boolean); const bad=links.filter(x=>!isUrl(x));
-      if(bad.length) return toast('This is not a link: '+bad[0].slice(0,40)+'. Paste the full SharePoint or OneDrive link starting with https://');
-      onDone({note:st.note.trim(), links}); md.remove(); };
+    md.querySelectorAll('[data-lk]').forEach(i=>i.oninput=()=>st.urls[+i.dataset.lk]=i.value);
+    md.querySelectorAll('[data-rmk]').forEach(b=>b.onclick=()=>{ st.urls.splice(+b.dataset.rmk,1); draw(); });
+    md.querySelectorAll('[data-rmf]').forEach(b=>b.onclick=()=>{ st.files.splice(+b.dataset.rmf,1); draw(); });
+    md.querySelector('#evFile').onchange=async e=>{ const fs=[...e.target.files]; const big=fs.filter(f=>f.size>EV_MAX); if(big.length) toast(`${big[0].name} is bigger than 10 MB. Make it smaller or use a SharePoint link.`);
+      const ok=fs.filter(f=>f.size<=EV_MAX); if(!ok.length) return; st.busy+=ok.length; draw();
+      for(const f of ok){ const path=`${r.officer_id}/${r.week_start}/${r.id}/${Date.now()}_${f.name.replace(/[^\w.\-]+/g,'_')}`;
+        const {error}=await sb.storage.from('evidence').upload(path, f, {contentType:f.type||undefined, upsert:false});
+        st.busy--; if(error){ toast('Upload failed for '+f.name+'. Try again.'); } else st.files.push({name:f.name, path, size:f.size}); draw(); } };
+    md.querySelector('#evOk').onclick=()=>{ const urls=st.urls.map(x=>(x||'').trim()).filter(Boolean); const bad=urls.filter(x=>!isUrl(x));
+      if(bad.length) return toast('This is not a link: '+bad[0].slice(0,40)+'. Paste the full link starting with https://');
+      onDone({note:st.note.trim(), links:[...st.files, ...urls]}); md.remove(); };
   };
   document.body.appendChild(md); md.addEventListener('click',e=>{ if(e.target===md) md.remove(); }); draw();
 }
@@ -427,7 +451,7 @@ async function viewMy(){
     const isDayRow = r => r.measure==='percent' || r.period_target==null || ['day','week','event'].includes(r.period);
     const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn ${i===todayIdx?'td':''}" data-day="${i}" title="Open ${d}">${d} ${addD(parse(S.week),i).getDate()}</button>`).join('')}<span class="tot">Week</span></div>`;
     const EV=Object.fromEntries(rows.map(r=>[r.id,evOf(r)]));
-    const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">🔗 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
+    const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">📎 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
     const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')} · ${esc(r.category||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>`;
     const dayRow = r => { const dv=dayVals(r), pc=r.measure==='percent';
       return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div>${evBtn(r)}</td>
@@ -461,11 +485,12 @@ async function viewMy(){
       <p class="small muted" style="margin:0 0 6px">From My plan. Enter how much you did against each line. KPI lines are the same as in the KPI tables below, so a number entered here also fills that KPI's day (and the other way round). These targets count in your score.</p>
       <table class="plt"><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
       ${planRows.map(p=>{ const r=p.it.t==='kpi'?byKpi[p.it.kpi_id]:null; let inp;
-        if(r&&isDayRow(r)) inp=`<input type="number" min="0" step="any" class="pm" data-r="${r.id}" data-i="${p.i}" value="${esc(dayVals(r)[p.i]??'')}" placeholder="0" ${locked?'disabled':''} aria-label="Done">`;
+        if(p.it.t==='note') inp='<span class="muted">–</span>';
+        else if(r&&isDayRow(r)) inp=`<input type="number" min="0" step="any" class="pm" data-r="${r.id}" data-i="${p.i}" value="${esc(dayVals(r)[p.i]??'')}" placeholder="0" ${locked?'disabled':''} aria-label="Done">`;
         else if(r) inp=`<span class="sub" id="pw_${r.id}">${num(Number(r.actual)||0)} this week</span>`;
         else inp=`<input type="number" min="0" step="any" class="pd" data-d="${p.i}" data-j="${p.j}" value="${esc(p.it.done??'')}" placeholder="0" ${locked?'disabled':''} aria-label="Done">`;
         return `<tr><td><b>${DAYN[p.i]}</b> <span class="sub">${esc(shortD(ymd(addD(parse(S.week),p.i))))}</span></td><td>${esc(p.loc||'–')}</td>
-          <td>${p.it.t==='kpi'?`<div class="code">${esc(p.it.code||'')}</div>${esc(p.it.name)}`:esc(p.it.text||'Planned work')}</td>
+          <td>${p.it.t==='kpi'?`<div class="code">${esc(p.it.code||'')}</div>${esc(p.it.name)}`:p.it.t==='note'?`<span class="sub" style="white-space:pre-wrap">💬 ${esc(p.it.text||'')}</span>`:esc(p.it.text||'Planned work')}</td>
           <td class="n"><b>${p.it.target==null?'–':num(p.it.target)}</b></td><td class="n">${inp}</td></tr>`; }).join('')}
       </tbody></table></div></details>`
       : `<div class="note" style="margin-bottom:12px">No plan for this week. <a class="link" href="#myplan">Make your plan</a> – where you go each day, what you will do and your targets.</div>`;
@@ -501,7 +526,7 @@ async function viewMy(){
     document.querySelectorAll('[data-tl]').forEach(b=>b.onclick=()=>{ const r=$('#tl_'+b.dataset.tl); r.hidden=!r.hidden; });
     document.querySelectorAll('#myBody .dbtn').forEach(b=>b.onclick=()=>openDay(S.week,+b.dataset.day,S.me.id,'one'));
     document.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>openEvidence(byId[b.dataset.ev], EV[b.dataset.ev], locked, v=>{ EV[b.dataset.ev]=v; const n=evCount(v);
-      b.classList.toggle('on',!!n); b.textContent='🔗 '+(n?`Evidence (${n})`:'Add evidence'); toast('Evidence added. Click Save draft to keep it.'); }));
+      b.classList.toggle('on',!!n); b.textContent='📎 '+(n?`Evidence (${n})`:'Add evidence'); toast('Evidence added. Click Save draft to keep it.'); }));
     const daysOf = id => [...document.querySelectorAll(`input.dv[data-r="${id}"]`)].map(x=>x.value);
     const refsOf = id => [...document.querySelectorAll(`select.lc[data-r="${id}"]`)].map(x=>x.value);
     document.querySelectorAll('select.lc').forEach(sel=>sel.addEventListener('change',()=>sel.classList.toggle('set',!!sel.value)));
@@ -582,7 +607,7 @@ async function openReview(sub, after){
     <div class="row">${spill(sub.status)}<button class="btn line sm" id="mClose">Close</button></div></div>
     <div class="scroll"><table><thead><tr><th>KPI</th><th>Target</th><th>${dayHeadRO(sub.week_start)}</th><th>Weekly achievement</th></tr></thead><tbody>
     ${rows.map(r=>{ const wk=(r.period==='day'||r.period==='week'||r.measure==='percent')&&r.target!=null;
-      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">🔗 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
+      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">📎 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
       <td>${dayRO(r)}</td><td>${wk?meter(ach(r.direction,r.target,r.actual,r.measure)):'<span class="sub">Counts in '+(r.period==='event'?'month':esc(r.period))+' score</span>'}</td></tr>`;}).join('')}
     </tbody></table></div>
     ${pLines.length?`<h2 style="margin:6px 0 0">Officer's plan</h2><div class="scroll"><table><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
@@ -731,7 +756,7 @@ async function exportExcel(){
         'Weekly target':k.target==null?'':Math.round(k.target*100)/100,
         ...Object.fromEntries(DAYN.map((d,i)=>[d+' '+shortD(ymd(addD(parse(k.week_start),i))).split(' ')[0], Array.isArray(k.daily)&&k.daily[i]!==''&&k.daily[i]!=null?Number(k.daily[i]):''])),
         'Reference/Location':DAYN.map((d,i)=>refOf(k,i)?d+': '+refOf(k,i):'').filter(Boolean).join('; '),
-        'Done this week':Number(k.actual)||0, Evidence:(()=>{ const e=evOf(k); return [e.note,...e.links].filter(Boolean).join('\n'); })(), 'Weekly achievement %':wk?Math.round(ach(k.direction,k.target,k.actual,k.measure)*100):'',
+        'Done this week':Number(k.actual)||0, Evidence:evText(evOf(k)), 'Weekly achievement %':wk?Math.round(ach(k.direction,k.target,k.actual,k.measure)*100):'',
         'Week score %':s.score!=null?Math.round(s.score*100):'', Status:s.status, 'Reviewed by':s.reviewed_by||'', 'Manager remarks':s.supervisor_remarks||'', 'Officer remarks':s.officer_remarks||''}; })
       .sort((a,b)=>(a.Officer||'').localeCompare(b.Officer||'')||a['Week start (Sat)'].localeCompare(b['Week start (Sat)'])||(a['KPI ID']||'').localeCompare(b['KPI ID']||''));
     if(!rows.length) return toast('No submitted weeks in this period to export.');
@@ -804,7 +829,7 @@ function confirmInline(btn,txt){ if(btn.dataset.armed){ return true; } btn.datas
 const PL = { week:null };
 async function viewMyPlan(){
   if(!PL.week) PL.week=ymd(addD(parse(thisWeek()),7));
-  const m=$('#main'); m.innerHTML=`<h1>My plan</h1><p class="lead">Plan your week: where you will be each day, what you will do and your own target. Use <b>+ Add KPI</b> to plan one of your KPIs; its target fills in by itself and you can change it. These targets count in your score; when a KPI has a higher target in the KPI Master, the higher one is used.</p>${ribbon(PL.week,'mp',2)}<div id="mpBody" class="empty">Loading your plan…</div>`;
+  const m=$('#main'); m.innerHTML=`<h1>My plan</h1><p class="lead">Plan your week: pick where you will be each day, then use <b>+ Add KPI</b> for the KPIs you will do (the target fills in by itself and you can change it) and <b>+ Add comment</b> for anything else. KPI targets count in your score; when the KPI Master target is higher, the higher one is used.</p>${ribbon(PL.week,'mp',2)}<div id="mpBody" class="empty">Loading your plan…</div>`;
   bindRibbon('mp',()=>PL.week,w=>PL.week=w,viewMyPlan);
   try{
     const {error:e0}=await sb.rpc('ensure_week_plan',{p_officer:S.me.id,p_week:PL.week}); if(e0) throw e0;
@@ -817,8 +842,8 @@ async function viewMyPlan(){
     if(error||e2||e3) throw (error||e2||e3);
     const locked=['submitted','approved'].includes(sub?.status);
     const kpis=kp||[]; const kById=Object.fromEntries(kpis.map(k=>[k.kpi_id,k]));
-    const fix=it=>{ if(it.t!=='kpi') return it; const k=kById[it.kpi_id]||kpis.find(x=>x.kpi_code===it.code&&x.kpi_name===it.name); return k?{...it,kpi_id:k.kpi_id}:{t:'text',text:lineName(it),target:it.target,done:it.done}; };
-    const toState=x=>{ const its=planItems(x).map(fix); return {location:x?.location||'', items:its.length?its:[{t:'text',text:'',target:null,done:null}]}; };
+    const fix=it=>{ if(it.t!=='kpi') return it; const k=kById[it.kpi_id]||kpis.find(x=>x.kpi_code===it.code&&x.kpi_name===it.name); return k?{...it,kpi_id:k.kpi_id}:{t:'note',text:lineName(it)+(it.target!=null?` (target ${it.target})`:'')}; };
+    const toState=x=>{ const its=planItems(x).map(it=>it.t==='text'?{t:'note',text:(it.text||'')+(it.target!=null?` (target ${it.target})`:'')}:it).map(fix); return {location:x?.location||'', items:its}; };
     const by=Object.fromEntries((data||[]).map(x=>[x.day,x]));
     const st=DAYN.map((d,i)=>toState(by[i]));
     const list=(S.lists||{}).sites||[]; const last=(data||[]).map(x=>x.updated_at).filter(Boolean).sort().pop();
@@ -827,15 +852,17 @@ async function viewMyPlan(){
     const dis=locked?'disabled':'';
     const draw=()=>{
       b.innerHTML=`${locked?`<div class="note good" style="margin-bottom:10px">This week is ${sub.status==='approved'?'approved':'submitted'}, so the plan is locked.</div>`:''}
-      <form id="mpF"><div class="scroll"><table class="mp"><thead><tr><th style="width:84px">Day</th><th style="width:190px">Location / client</th><th>Write your plan</th><th style="width:96px">Target</th><th style="width:40px"></th></tr></thead><tbody>
+      <form id="mpF"><div class="scroll"><table class="mp"><thead><tr><th style="width:84px">Day</th><th style="width:190px">Location / client</th><th>Plan</th><th style="width:96px">Target</th><th style="width:40px"></th></tr></thead><tbody>
       ${DAYN.map((d,i)=>`<tr class="dayrow"><td><b>${d}</b><div class="sub">${esc(shortD(ymd(addD(parse(PL.week),i))))}</div></td>
         <td><select data-l="${i}" ${dis} aria-label="${d} location">${locOpts(list,st[i].location,'Choose location')}</select></td>
-        <td colspan="3">${st[i].items.map((it,j)=>`<div class="pl">
-            ${it.t==='kpi'?`<select data-k="${i}" data-j="${j}" ${dis} aria-label="${d} KPI">${kOpts(it.kpi_id)}</select>`
-              :`<input type="text" data-tx="${i}" data-j="${j}" value="${esc(it.text||'')}" placeholder="Write your plan" ${dis} aria-label="${d} plan">`}
+        <td colspan="3">${st[i].items.map((it,j)=>it.t==='kpi'?`<div class="pl">
+            <select data-k="${i}" data-j="${j}" ${dis} aria-label="${d} KPI">${kOpts(it.kpi_id)}</select>
             <input type="number" min="0" step="any" data-tg="${i}" data-j="${j}" value="${it.target??''}" placeholder="0" ${dis} aria-label="${d} target">
-            <button type="button" class="x" data-rm="${i}" data-j="${j}" ${dis} aria-label="Remove line">×</button></div>`).join('')}
-          ${locked?'':`<div class="row" style="gap:6px"><button type="button" class="btn line sm" data-addk="${i}">+ Add KPI</button><button type="button" class="btn line sm" data-addt="${i}">+ Add line</button></div>`}</td></tr>`).join('')}
+            <button type="button" class="x" data-rm="${i}" data-j="${j}" ${dis} aria-label="Remove KPI">×</button></div>`
+            :`<div class="pl note"><textarea data-tx="${i}" data-j="${j}" rows="2" placeholder="Write your comment" ${dis} aria-label="${d} comment">${esc(it.text||'')}</textarea>
+            <button type="button" class="x" data-rm="${i}" data-j="${j}" ${dis} aria-label="Remove comment">×</button></div>`).join('')}
+          ${!st[i].items.length&&locked?'<span class="muted small">Nothing planned.</span>':''}
+          ${locked?'':`<div class="row" style="gap:6px"><button type="button" class="btn line sm" data-addk="${i}">+ Add KPI</button><button type="button" class="btn line sm" data-addt="${i}">💬 Add comment</button></div>`}</td></tr>`).join('')}
       </tbody></table></div>
       ${locked?'':`<div class="row" style="margin-top:12px"><button class="btn" type="submit">Save plan</button>
         ${(prev||[]).length?'<button class="btn line" type="button" id="mpCopy">Copy last week\'s plan</button>':''}
@@ -847,12 +874,12 @@ async function viewMyPlan(){
       b.querySelectorAll('[data-k]').forEach(s=>s.onchange=()=>{ const it=st[+s.dataset.k].items[+s.dataset.j]; const k=kById[s.value];
         it.kpi_id=s.value||null; it.target=k?(k.measure==='percent'?100:(k.period_target==null?null:Number(k.period_target))):null; draw(); });
       b.querySelectorAll('[data-addk]').forEach(x=>x.onclick=()=>{ st[+x.dataset.addk].items.push({t:'kpi',kpi_id:null,target:null,done:null}); draw(); });
-      b.querySelectorAll('[data-addt]').forEach(x=>x.onclick=()=>{ st[+x.dataset.addt].items.push({t:'text',text:'',target:null,done:null}); draw(); });
-      b.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{ const s=st[+x.dataset.rm]; s.items.splice(+x.dataset.j,1); if(!s.items.length) s.items=[{t:'text',text:'',target:null,done:null}]; draw(); });
+      b.querySelectorAll('[data-addt]').forEach(x=>x.onclick=()=>{ st[+x.dataset.addt].items.push({t:'note',text:''}); draw(); const t=b.querySelector(`[data-tx="${x.dataset.addt}"][data-j="${st[+x.dataset.addt].items.length-1}"]`); t&&t.focus(); });
+      b.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{ const s=st[+x.dataset.rm]; s.items.splice(+x.dataset.j,1); draw(); });
       $('#mpCopy')&&($('#mpCopy').onclick=()=>{ (prev||[]).forEach(x=>{ const t=toState(x); t.items=t.items.map(it=>({...it,done:null})); st[x.day]=t; }); draw(); toast('Copied. Change what you need, then Save plan.'); });
       $('#mpF').onsubmit=async e=>{ e.preventDefault(); const bt=e.submitter; bt.disabled=true;
         const rows=st.map((s,i)=>{ const items=s.items.map(it=>{ if(it.t==='kpi'){ const k=kById[it.kpi_id]; if(!k) return null; return {t:'kpi',kpi_id:k.kpi_id,code:k.kpi_code,name:k.kpi_name,target:it.target,done:it.done??null}; }
-              const tx=(it.text||'').trim(); if(!tx&&it.target==null) return null; return {t:'text',text:tx||'Planned work',target:it.target,done:it.done??null}; }).filter(Boolean);
+              const tx=(it.text||'').trim(); if(!tx) return null; return {t:'note',text:tx}; }).filter(Boolean);
           return {officer_id:S.me.id, week_start:PL.week, day:i, location:s.location||null, items, activity:items.length?items.map(it=>lineName(it)+(it.target!=null?` (target ${it.target})`:'')).join('\n'):null, updated_at:new Date().toISOString()}; });
         const {error}=await sb.from('week_plans').upsert(rows,{onConflict:'officer_id,week_start,day'});
         bt.disabled=false; if(error) return err(error); toast('Plan saved.'); viewMyPlan(); };
