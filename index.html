@@ -862,7 +862,7 @@ async function viewMyPlan(){
             :`<div class="pl note"><textarea data-tx="${i}" data-j="${j}" rows="2" placeholder="Write your comment" ${dis} aria-label="${d} comment">${esc(it.text||'')}</textarea>
             <button type="button" class="x" data-rm="${i}" data-j="${j}" ${dis} aria-label="Remove comment">×</button></div>`).join('')}
           ${!st[i].items.length&&locked?'<span class="muted small">Nothing planned.</span>':''}
-          ${locked?'':`<div class="row" style="gap:6px"><button type="button" class="btn line sm" data-addk="${i}">+ Add KPI</button><button type="button" class="btn line sm" data-addt="${i}">💬 Add comment</button></div>`}</td></tr>`).join('')}
+          ${locked?'':(()=>{ const hasK=st[i].items.some(x=>x.t==='kpi'), hasC=st[i].items.some(x=>x.t==='note'); return hasK&&hasC?'':`<div class="row" style="gap:6px">${hasK?'':`<button type="button" class="btn line sm" data-addk="${i}">+ Add KPI</button>`}${hasC?'':`<button type="button" class="btn line sm" data-addt="${i}">💬 Add comment</button>`}</div>`; })()}</td></tr>`).join('')}
       </tbody></table></div>
       ${locked?'':`<div class="row" style="margin-top:12px"><button class="btn" type="submit">Save plan</button>
         ${(prev||[]).length?'<button class="btn line" type="button" id="mpCopy">Copy last week\'s plan</button>':''}
