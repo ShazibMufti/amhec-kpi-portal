@@ -65,7 +65,7 @@ h2{font:700 21px/1.2 var(--display);margin:0 0 10px}
 @media (max-width:640px){table.kt thead tr th:first-child{display:none} table.kt tr{display:grid;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)} table.kt td,table.kt th{border:0;padding:0} table.kt td:first-child{min-width:0}}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
 label.f{display:grid;gap:4px;font-size:13px;color:var(--muted);font-weight:500}
-input[type=text],input[type=email],input[type=number],input[type=date],input[type=search],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-width:0;width:100%}
+input[type=text],input[type=email],input[type=url],input[type=number],input[type=date],input[type=search],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-width:0;width:100%}
 textarea{min-height:70px;resize:vertical}
 input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
 input:user-invalid{border-color:var(--bad)}
@@ -390,35 +390,30 @@ document.addEventListener('click', async e=>{ const a=e.target.closest('a[data-f
   if(error||!data?.signedUrl){ if(w) w.close(); return toast('Could not open the file. Check your connection.'); }
   if(w) w.location=data.signedUrl; else location.href=data.signedUrl; });
 function openEvidence(r, cur, locked, onDone){
-  const st={note:cur.note, files:cur.links.filter(l=>typeof l!=='string'), urls:cur.links.filter(l=>typeof l==='string'), busy:0};
+  const st={note:cur.note, links:[...cur.links]};
   const md=document.createElement('div'); md.className='modal';
   const draw=()=>{ md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Evidence" style="max-width:620px">
     <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Evidence</h2><div class="muted small">${esc(r.kpi_code||'')} – ${esc(r.kpi_name)}</div></div><button class="btn line sm" id="evX" type="button">Close</button></div>
     ${locked?(evCount(cur)?evView(cur):'<p class="muted">No evidence added for this KPI.</p>'):`
-    <div class="stack" style="gap:8px"><span class="small" style="font-weight:600">Attached files</span>
-      ${st.files.length?st.files.map((f,j)=>`<div class="evf">${evLink(f)}<button type="button" class="x" data-rmf="${j}" aria-label="Remove file">×</button></div>`).join(''):'<p class="small muted" style="margin:0">No files yet.</p>'}
-      ${st.busy?`<p class="small" style="margin:0">Uploading ${st.busy} file(s)…</p>`:''}
-      <label class="btn line attach" for="evFile">📎 Attach file<input id="evFile" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt" hidden></label>
-      <p class="small muted" style="margin:0">Photos, PDF, Word, Excel or PowerPoint, up to 10 MB each. The file becomes a link your manager can open.</p></div>
+    <div class="stack" style="gap:8px"><span class="small" style="font-weight:600">Attached links</span>
+      ${st.links.length?st.links.map((l,j)=>`<div class="evf">${evLink(l)}<button type="button" class="x" data-rml="${j}" aria-label="Remove link">×</button></div>`).join(''):'<p class="small muted" style="margin:0">No links yet.</p>'}
+      <div class="row" style="gap:6px;flex-wrap:nowrap"><input type="url" id="evU" placeholder="Paste SharePoint or OneDrive link" style="flex:1"><button type="button" class="btn line" id="evAdd">🔗 Attach link</button></div>
+      <p class="small muted" style="margin:0">Upload the file to the QHSE evidence folder on SharePoint/OneDrive, click <b>Share → Copy link</b> (People in AMHEC), then paste it here.</p></div>
     <label class="f" for="evN">Comment (optional)<textarea id="evN" placeholder="e.g. Inspection report no., what was checked">${esc(st.note)}</textarea></label>
-    <details class="evmore" ${st.urls.length?'open':''}><summary class="small">Or paste a SharePoint / OneDrive link</summary>
-      ${(st.urls.length?st.urls:['']).map((u,j)=>`<div class="row" style="gap:6px;flex-wrap:nowrap;margin-top:6px"><input type="url" data-lk="${j}" value="${esc(u)}" placeholder="https://…sharepoint.com/…" style="flex:1"><button type="button" class="x" data-rmk="${j}" aria-label="Remove link">×</button></div>`).join('')}
-    </details>
-    <div class="row"><button class="btn" id="evOk" type="button" ${st.busy?'disabled':''}>Done</button><span class="small muted">Saved when you click Save draft or Submit.</span></div>`}</div>`;
+    <div class="row"><button class="btn" id="evOk" type="button">Done</button><span class="small muted">Saved when you click Save draft or Submit.</span></div>`}</div>`;
     md.querySelector('#evX').onclick=()=>md.remove();
     if(locked) return;
     md.querySelector('#evN').oninput=e=>st.note=e.target.value;
-    md.querySelectorAll('[data-lk]').forEach(i=>i.oninput=()=>st.urls[+i.dataset.lk]=i.value);
-    md.querySelectorAll('[data-rmk]').forEach(b=>b.onclick=()=>{ st.urls.splice(+b.dataset.rmk,1); draw(); });
-    md.querySelectorAll('[data-rmf]').forEach(b=>b.onclick=()=>{ st.files.splice(+b.dataset.rmf,1); draw(); });
-    md.querySelector('#evFile').onchange=async e=>{ const fs=[...e.target.files]; const big=fs.filter(f=>f.size>EV_MAX); if(big.length) toast(`${big[0].name} is bigger than 10 MB. Make it smaller or use a SharePoint link.`);
-      const ok=fs.filter(f=>f.size<=EV_MAX); if(!ok.length) return; st.busy+=ok.length; draw();
-      for(const f of ok){ const path=`${r.officer_id}/${r.week_start}/${r.id}/${Date.now()}_${f.name.replace(/[^\w.\-]+/g,'_')}`;
-        const {error}=await sb.storage.from('evidence').upload(path, f, {contentType:f.type||undefined, upsert:false});
-        st.busy--; if(error){ toast('Upload failed for '+f.name+'. Try again.'); } else st.files.push({name:f.name, path, size:f.size}); draw(); } };
-    md.querySelector('#evOk').onclick=()=>{ const urls=st.urls.map(x=>(x||'').trim()).filter(Boolean); const bad=urls.filter(x=>!isUrl(x));
-      if(bad.length) return toast('This is not a link: '+bad[0].slice(0,40)+'. Paste the full link starting with https://');
-      onDone({note:st.note.trim(), links:[...st.files, ...urls]}); md.remove(); };
+    md.querySelectorAll('[data-rml]').forEach(b=>b.onclick=()=>{ st.links.splice(+b.dataset.rml,1); draw(); });
+    const add=()=>{ const u=md.querySelector('#evU').value.trim(); if(!u) return toast('Paste a link first.');
+      if(!isUrl(u)) return toast('This is not a link. Paste the full SharePoint or OneDrive link starting with https://');
+      if(st.links.includes(u)) return toast('This link is already attached.');
+      st.links.push(u); draw(); md.querySelector('#evU').focus(); };
+    md.querySelector('#evAdd').onclick=add;
+    md.querySelector('#evU').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); add(); } };
+    md.querySelector('#evOk').onclick=()=>{ const pend=md.querySelector('#evU').value.trim();
+      if(pend){ if(!isUrl(pend)) return toast('The link in the box is not valid. Fix it or clear it.'); if(!st.links.includes(pend)) st.links.push(pend); }
+      onDone({note:st.note.trim(), links:st.links}); md.remove(); };
   };
   document.body.appendChild(md); md.addEventListener('click',e=>{ if(e.target===md) md.remove(); }); draw();
 }
@@ -451,7 +446,7 @@ async function viewMy(){
     const isDayRow = r => r.measure==='percent' || r.period_target==null || ['day','week','event'].includes(r.period);
     const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn ${i===todayIdx?'td':''}" data-day="${i}" title="Open ${d}">${d} ${addD(parse(S.week),i).getDate()}</button>`).join('')}<span class="tot">Week</span></div>`;
     const EV=Object.fromEntries(rows.map(r=>[r.id,evOf(r)]));
-    const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">📎 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
+    const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">🔗 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
     const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')} · ${esc(r.category||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>`;
     const dayRow = r => { const dv=dayVals(r), pc=r.measure==='percent';
       return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div>${evBtn(r)}</td>
@@ -526,7 +521,7 @@ async function viewMy(){
     document.querySelectorAll('[data-tl]').forEach(b=>b.onclick=()=>{ const r=$('#tl_'+b.dataset.tl); r.hidden=!r.hidden; });
     document.querySelectorAll('#myBody .dbtn').forEach(b=>b.onclick=()=>openDay(S.week,+b.dataset.day,S.me.id,'one'));
     document.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>openEvidence(byId[b.dataset.ev], EV[b.dataset.ev], locked, v=>{ EV[b.dataset.ev]=v; const n=evCount(v);
-      b.classList.toggle('on',!!n); b.textContent='📎 '+(n?`Evidence (${n})`:'Add evidence'); toast('Evidence added. Click Save draft to keep it.'); }));
+      b.classList.toggle('on',!!n); b.textContent='🔗 '+(n?`Evidence (${n})`:'Add evidence'); toast('Evidence added. Click Save draft to keep it.'); }));
     const daysOf = id => [...document.querySelectorAll(`input.dv[data-r="${id}"]`)].map(x=>x.value);
     const refsOf = id => [...document.querySelectorAll(`select.lc[data-r="${id}"]`)].map(x=>x.value);
     document.querySelectorAll('select.lc').forEach(sel=>sel.addEventListener('change',()=>sel.classList.toggle('set',!!sel.value)));
@@ -607,7 +602,7 @@ async function openReview(sub, after){
     <div class="row">${spill(sub.status)}<button class="btn line sm" id="mClose">Close</button></div></div>
     <div class="scroll"><table><thead><tr><th>KPI</th><th>Target</th><th>${dayHeadRO(sub.week_start)}</th><th>Weekly achievement</th></tr></thead><tbody>
     ${rows.map(r=>{ const wk=(r.period==='day'||r.period==='week'||r.measure==='percent')&&r.target!=null;
-      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">📎 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
+      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">🔗 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
       <td>${dayRO(r)}</td><td>${wk?meter(ach(r.direction,r.target,r.actual,r.measure)):'<span class="sub">Counts in '+(r.period==='event'?'month':esc(r.period))+' score</span>'}</td></tr>`;}).join('')}
     </tbody></table></div>
     ${pLines.length?`<h2 style="margin:6px 0 0">Officer's plan</h2><div class="scroll"><table><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
