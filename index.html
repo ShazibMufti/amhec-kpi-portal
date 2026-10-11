@@ -305,7 +305,7 @@ const isAdmin = () => S.me && S.me.role==='admin';
 
 const TITLES={my:'My KPIs',mydash:'My Dashboard',myplan:'My plan',approvals:'Approvals',dashboard:'Dashboard',plan:'Weekly plan',plans:'Team plans',setup:'Setup'};
 function shell(){
-  const tabs=[['my','My KPIs'],['mydash','My Dashboard'],['myplan','My plan']];
+  const tabs=[['my','My KPIs'],...(isMgr()?[]:[['mydash','My Dashboard']]),['myplan','My plan']];
   if(isMgr()) tabs.push(['approvals','Approvals'],['dashboard','Dashboard'],['plan','Weekly plan'],['plans','Team plans']);
   if(isAdmin()) tabs.push(['setup','Setup']);
   const ini=(S.me.full_name||'?').split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
@@ -343,7 +343,7 @@ function go(k){ S.tab=k; try{ if(location.hash!=='#'+k) history.pushState(null,'
 document.addEventListener('click',e=>{ const a=e.target.closest('a[href^="#"]'); if(!a||!S.me) return; const k=a.getAttribute('href').slice(1); if(!TITLES[k]) return; e.preventDefault(); go(k); });
 function route(){
   let t=S.tab||(location.hash||'#my').slice(1).split('/')[0];
-  const allowed=['my','mydash','myplan']; if(isMgr()) allowed.push('approvals','dashboard','plan','plans'); if(isAdmin()) allowed.push('setup');
+  const allowed=['my','myplan']; if(!isMgr()) allowed.push('mydash'); if(isMgr()) allowed.push('approvals','dashboard','plan','plans'); if(isAdmin()) allowed.push('setup');
   if(!allowed.includes(t)) t='my';
   document.querySelectorAll('.side nav a').forEach(a=>a.classList.toggle('on',a.dataset.t===t)); 
   ({my:viewMy, mydash:viewMyDash, myplan:viewMyPlan, approvals:viewApprovals, dashboard:viewDashboard, plan:viewPlan, plans:viewPlans, setup:viewSetup})[t]();
@@ -429,7 +429,7 @@ function openEvidence(r, cur, locked, onDone){
 
 // ---------- My KPIs ----------
 async function viewMy(){
-  const m=$('#main'); m.innerHTML=`<h1>My KPIs</h1><p class="lead">Enter what you did this week (Saturday to Friday), then submit for approval. Click a day (Sat to Fri) to see everything you entered for that day.</p>${ribbon(S.week,'my')}<p class="small muted" style="margin:-6px 0 12px">Your scores and charts are in <a class="link" href="#mydash">My Dashboard</a>.</p><div id="myBody" class="empty">Loading your KPIs…</div>`;
+  const m=$('#main'); m.innerHTML=`<h1>My KPIs</h1><p class="lead">Enter what you did this week (Saturday to Friday), then submit for approval. Click a day (Sat to Fri) to see everything you entered for that day.</p>${ribbon(S.week,'my')}${isMgr()?'':'<p class="small muted" style="margin:-6px 0 12px">Your scores and charts are in <a class="link" href="#mydash">My Dashboard</a>.</p>'}<div id="myBody" class="empty">Loading your KPIs…</div>`;
   bindRibbon('my',()=>S.week,w=>S.week=w,viewMy);
   try{
     const {error:e0}=await sb.rpc('ensure_week_plan',{p_officer:S.me.id,p_week:S.week}); if(e0) throw e0;
