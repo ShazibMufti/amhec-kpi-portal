@@ -173,6 +173,7 @@ details.perf .tiles{margin:0}
 .evb{margin-top:6px;border:1px dashed #c7d2fe;background:#fff;color:var(--muted);border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer}
 .evb:hover{color:var(--brand);border-color:var(--brand)}
 .evb.on{border-style:solid;background:#eef2ff;color:var(--brand);font-weight:600}
+a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .evf{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#f8fafc}
 .evf .x{height:28px;width:28px}
 label.attach{display:inline-flex;align-items:center;gap:6px;width:max-content;cursor:pointer}
@@ -1057,6 +1058,26 @@ async function viewSetup(){
   try{ await ({rules:setupRules, people:setupPeople, kpis:setupKpis})[setupTab](); }catch(x){ err(x); }
 }
 const opts = (list, cur, blank) => (blank?`<option value="">${blank}</option>`:'') + [...new Set([...(cur&&!list.includes(cur)?[cur]:[]), ...list])].map(v=>`<option ${v===cur?'selected':''}>${esc(v)}</option>`).join('');
+const APP_URL = /^https?:/.test(location.origin) ? location.origin : 'https://amhec-kpi-portal-sccz.vercel.app';
+const loginMsg = (p,pw) => `Assalam o Alaikum ${p.full_name||''},\n\nYour login for AMHEC – QHSE KPI Management System:\n\nLink: ${APP_URL}\nEmail (login ID): ${p.email}\nPassword: ${pw}\n\nYou can change your password after signing in (Change password, bottom left).\n\nRegards,\n${S.me.full_name||'QHSE'}`;
+const mailtoLogin = (p,pw) => `mailto:${encodeURIComponent(p.email)}?subject=${encodeURIComponent('Your login – AMHEC QHSE KPI Management System')}&body=${encodeURIComponent(loginMsg(p,pw))}`;
+const newPassword = () => { const a='ABCDEFGHJKLMNPQRSTUVWXYZ', d='23456789', r=n=>{ const u=new Uint32Array(1); crypto.getRandomValues(u); return u[0]%n; };
+  return 'Amhec-'+[...Array(4)].map(()=>d[r(d.length)]).join('')+[...Array(2)].map(()=>a[r(a.length)]).join(''); };
+let CREDS = null; // passwords made in this session only; never stored
+function credTable(){ const ok=CREDS.filter(c=>c.pw);
+  return `<div class="note warn">Passwords are shown only now and are not saved anywhere. Send them, or click <b>Download Excel</b>, before you leave this page.</div>
+  <div class="row"><b>${ok.length} ready</b><span class="small muted">${CREDS.filter(c=>c.sent).length} emails opened</span><button class="btn line sm" type="button" id="credX">Download Excel</button><button class="btn line sm" type="button" id="credClose">Hide list</button></div>
+  <div class="scroll"><table><thead><tr><th>Name</th><th>CAM No.</th><th>Email</th><th>Password</th><th></th></tr></thead><tbody>
+  ${CREDS.map((c,i)=>`<tr><td><div class="kpiname">${esc(c.p.full_name)}</div><div class="sub">${esc(ROLE[c.p.role]||c.p.role)}</div></td><td>${esc(c.p.employee_no||'')}</td><td class="small">${esc(c.p.email)}</td>
+    <td>${c.pw?`<code>${esc(c.pw)}</code>`:`<span class="pill r-po" title="${esc(c.err||'')}">Failed</span>`}</td>
+    <td>${c.pw?`<div class="row" style="flex-wrap:nowrap"><a class="btn ${c.sent?'line':''} sm" data-mail="${i}" href="${esc(mailtoLogin(c.p,c.pw))}">${c.sent?'✓ Email opened':'✉ Email'}</a><button class="btn line sm" type="button" data-cp="${i}">Copy</button></div>`:''}</td></tr>`).join('')}
+  </tbody></table></div>`; }
+function bindCreds(){ if(!CREDS) return;
+  document.querySelectorAll('[data-mail]').forEach(a=>a.addEventListener('click',()=>{ const c=CREDS[+a.dataset.mail]; c.sent=true; setTimeout(()=>{ a.classList.add('line'); a.textContent='✓ Email opened'; },300); }));
+  document.querySelectorAll('[data-cp]').forEach(bn=>bn.onclick=async()=>{ const c=CREDS[+bn.dataset.cp]; try{ await navigator.clipboard.writeText(loginMsg(c.p,c.pw)); toast('Copied.'); }catch(_){ toast('Could not copy. Use the Email button.'); } });
+  $('#credClose')&&($('#credClose').onclick=()=>{ CREDS=null; viewSetup(); });
+  $('#credX')&&($('#credX').onclick=()=>{ const wb=XLSX.utils.book_new(); const ws=XLSX.utils.json_to_sheet(CREDS.filter(c=>c.pw).map(c=>({Name:c.p.full_name,'CAM No':c.p.employee_no||'',Email:c.p.email,Role:ROLE[c.p.role]||c.p.role,Password:c.pw,Link:APP_URL,Message:loginMsg(c.p,c.pw)})));
+    ws['!cols']=[24,8,30,10,14,40,60].map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb,ws,'Logins'); XLSX.writeFile(wb,'AMHEC_KPI_Logins.xlsx'); }); }
 async function setupPeople(){
   const {data:people,error}=await sb.from('profiles').select('*').order('full_name'); if(error) throw error;
   const sups=people.filter(p=>p.role!=='officer');
@@ -1077,6 +1098,9 @@ async function setupPeople(){
       <label class="f" for="bm_m" style="min-width:220px">Manager<select id="bm_m">${sups.map(s=>`<option value="${esc(s.email)}">${esc(s.full_name)}</option>`).join('')||'<option value="">Add a Manager first</option>'}</select></label>
       <label class="f" for="bm_w">Which officers<select id="bm_w"><option value="none">Only officers without a manager</option><option value="all">All active officers</option></select></label>
       <button class="btn line" type="button" id="bm_go">Apply</button></div>
+    <div class="panel stack" id="credBox"><div class="row"><div style="flex:1;min-width:240px"><b>Send login details to everyone</b><div class="small muted">Makes a new password for every active person (except you), then gives you an ✉ Email button for each. Old passwords stop working.</div></div>
+      <button class="btn" type="button" id="credGo">Create passwords for everyone</button></div>
+      ${CREDS?credTable():''}</div>
     <details class="panel"><summary><b>Add many people at once (paste from Excel)</b></summary>
       <p class="small muted">Copy these columns from Excel, in this order, and paste: Name, Email, CAM No. (4 digits), Function, Designation, Manager email, Role (officer/manager/admin), Password (optional, 8+ characters).</p>
       <textarea id="bulk" style="min-height:120px"></textarea><div class="row" style="margin-top:8px"><button class="btn" id="bulkB">Add pasted people</button></div></details>
@@ -1086,6 +1110,12 @@ async function setupPeople(){
       <td class="small">${esc((people.find(s=>s.email===p.supervisor_email)||{}).full_name||'')}</td><td>${esc(ROLE[p.role]||p.role)}</td>
       <td><div class="row" style="flex-wrap:nowrap"><button class="btn line sm" data-e="${p.id}">Edit</button><button class="btn line sm" data-pw="${esc(p.email)}">Set password</button></div></td></tr>`).join('')}</tbody></table></div></div>`;
     b.querySelectorAll('[data-e]').forEach(x=>x.onclick=()=>{render(people.find(p=>p.id===x.dataset.e)); window.scrollTo(0,0);});
+    $('#credGo').onclick=async()=>{ if(!confirmInline($('#credGo'),'Click again: change everyone\'s password')) return;
+      const list=people.filter(p=>p.active&&p.id!==S.me.id); const bt=$('#credGo'); bt.disabled=true; CREDS=[];
+      for(const [i,p] of list.entries()){ bt.textContent=`Working… ${i+1}/${list.length}`; const pw=newPassword();
+        const {error}=await sb.rpc('admin_set_password',{p_email:p.email,p_password:pw}); CREDS.push({p, pw:error?null:pw, err:error?.message||null, sent:false}); }
+      const bad=CREDS.filter(c=>!c.pw).length; toast(bad?`${CREDS.length-bad} done, ${bad} failed.`:`${CREDS.length} passwords created. Now click ✉ Email for each person.`); render(); setTimeout(()=>$('#credBox')?.scrollIntoView({behavior:'smooth'}),50); };
+    bindCreds();
     $('#pfCancel')&&($('#pfCancel').onclick=()=>render());
     $('#bm_go').onclick=async()=>{ const m=$('#bm_m').value; if(!m) return toast('Add a person with the role Manager first.');
       let q=sb.from('profiles').update({supervisor_email:m}).eq('role','officer').eq('active',true); if($('#bm_w').value==='none') q=q.is('supervisor_email',null);
@@ -1100,9 +1130,10 @@ async function setupPeople(){
       $('#spF').onsubmit=async e=>{ e.preventDefault(); const pw=$('#sp1').value; const {error}=await sb.rpc('admin_set_password',{p_email:x.dataset.pw,p_password:pw});
         if(error) return err(error);
         const msg=`AMHEC – QHSE KPI Management System\nLink: ${location.origin}\nEmail (login ID): ${x.dataset.pw}\nPassword: ${pw}\nPlease change your password after first login (Change password, bottom left).`;
+        const pp=people.find(q=>q.email===x.dataset.pw)||{email:x.dataset.pw};
         $('#spF').innerHTML=`<h2 style="margin:0">Password saved</h2><p class="muted" style="margin:0">Send this message to the person by email, Teams or WhatsApp.</p>
           <textarea id="spMsg" readonly style="min-height:130px">${esc(msg)}</textarea>
-          <div class="row"><button class="btn" type="button" id="spCopy">Copy message</button><button class="btn line" type="button" id="spDone">Done</button></div>`;
+          <div class="row"><a class="btn" href="${esc(mailtoLogin(pp,pw))}">✉ Email</a><button class="btn line" type="button" id="spCopy">Copy message</button><button class="btn line" type="button" id="spDone">Done</button></div>`;
         $('#spDone').onclick=()=>md.remove();
         $('#spCopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(msg); toast('Copied. Paste it into your message.'); }catch(_){ $('#spMsg').select(); toast('Press Ctrl+C to copy.'); } }; };
     });
