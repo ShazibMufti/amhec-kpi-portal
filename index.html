@@ -149,7 +149,7 @@ table.mp td{vertical-align:top}
 .pl{display:grid;grid-template-columns:minmax(0,1fr) 96px 34px;gap:6px;align-items:center;margin-bottom:6px}
 .pl.note{grid-template-columns:minmax(0,1fr) 34px}
 .pl textarea{min-height:44px}
-.pl textarea::placeholder{color:#94a3b8;font-style:italic}
+.pl textarea::placeholder,.pl input[type=text]::placeholder{color:#94a3b8;font-style:italic}
 .x{height:36px;border:1px solid var(--line);border-radius:6px;background:var(--surface);cursor:pointer;font-size:18px;color:var(--muted)}
 .x[disabled]{opacity:.35;cursor:default}
 .pgg{display:grid;grid-template-columns:repeat(var(--n),minmax(54px,1fr)) minmax(80px,auto) 72px;gap:6px;align-items:center;min-width:calc(var(--n)*60px + 160px)}
@@ -210,7 +210,7 @@ const DAYS = 7; // working days per week, Sat–Fri
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const FUNCTIONS = ['HSE Operations','Quality Assurance','Journey Management','QHSE Training','Rig Move HSE Operations','QHSE Operations','Premises Safety / Security'];
 const DESIGNATIONS = ['Officer HSE','Senior Officer HSE','Supervisor HSE','Superintendent HSE','Manager HSE','Manager Quality & HSES Programs','Coordinator QHSE Training','Document Controller','Head of QHSE','DATA MANAGEMENT & QHSE DIGITALIZATION','ADMINISTRATOR HSE','MEDIC','RIG SUPERVISOR','RIG SUPERINTENDENT','Champion Journey Management','JM ADMIN','PREMISES HEAD','PREMISES SUPERVISOR'];
-const ROLE = {officer:'Officer',supervisor:'Manager',admin:'Admin'};
+const ROLE = {officer:'Officer',supervisor:'Supervisor / Manager',admin:'Admin'};
 const desigOf = v => { const t=String(v||'').trim(); return DESIGNATIONS.find(d=>d.toLowerCase()===t.toLowerCase())||t; };
 const PERIODS = {day:'per day',week:'per week',month:'per month',event:'per month (event-driven)',bimonth:'per 2 months',quarter:'per quarter',half:'per half-year',year:'per year'};
 const RANK = {day:0,week:1,month:2,event:2,bimonth:3,quarter:3,half:4,year:5};
@@ -889,7 +889,7 @@ function confirmInline(btn,txt){ if(btn.dataset.armed){ return true; } btn.datas
 const PL = { week:null };
 async function viewMyPlan(){
   if(!PL.week) PL.week=ymd(addD(parse(thisWeek()),7));
-  const m=$('#main'); m.innerHTML=`<h1>My plan</h1><p class="lead">Plan your week: pick where you will be each day, then use <b>+ Add KPO</b> for the KPOs you will do (the target fills in by itself and you can change it) and <b>+ Add comment</b> for anything else. KPO targets count in your score; when the KPO Master target is higher, the higher one is used.</p>${ribbon(PL.week,'mp',2)}<div id="mpBody" class="empty">Loading your plan…</div>`;
+  const m=$('#main'); m.innerHTML=`<h1>My plan</h1><p class="lead">Plan your week: pick where you will be each day, then use <b>+ Add KPO</b> for the KPOs you will do (the target fills in by itself and you can change it) and <b>+ Add plan</b> for any other work with your own target. All these targets count in your score; when the KPO Master target is higher, the higher one is used.</p>${ribbon(PL.week,'mp',2)}<div id="mpBody" class="empty">Loading your plan…</div>`;
   bindRibbon('mp',()=>PL.week,w=>PL.week=w,viewMyPlan);
   try{
     const {error:e0}=await sb.rpc('ensure_week_plan',{p_officer:S.me.id,p_week:PL.week}); if(e0) throw e0;
@@ -902,8 +902,8 @@ async function viewMyPlan(){
     if(error||e2||e3) throw (error||e2||e3);
     const locked=['submitted','approved'].includes(sub?.status);
     const kpis=kp||[]; const kById=Object.fromEntries(kpis.map(k=>[k.kpi_id,k]));
-    const fix=it=>{ if(it.t!=='kpi') return it; const k=kById[it.kpi_id]||kpis.find(x=>x.kpi_code===it.code&&x.kpi_name===it.name); return k?{...it,kpi_id:k.kpi_id}:{t:'note',text:lineName(it)+(it.target!=null?` (target ${it.target})`:'')}; };
-    const toState=x=>{ const its=planItems(x).map(it=>it.t==='text'?{t:'note',text:(it.text||'')+(it.target!=null?` (target ${it.target})`:'')}:it).map(fix); return {location:x?.location||'', items:its}; };
+    const fix=it=>{ if(it.t!=='kpi') return it; const k=kById[it.kpi_id]||kpis.find(x=>x.kpi_code===it.code&&x.kpi_name===it.name); return k?{...it,kpi_id:k.kpi_id}:{t:'text',text:lineName(it),target:it.target,done:it.done}; };
+    const toState=x=>{ const its=planItems(x).map(it=>it.t==='note'?{t:'text',text:it.text||'',target:null,done:null}:it).map(fix); return {location:x?.location||'', items:its}; };
     const by=Object.fromEntries((data||[]).map(x=>[x.day,x]));
     const st=DAYN.map((d,i)=>toState(by[i]));
     const list=(S.lists||{}).sites||[]; const last=(data||[]).map(x=>x.updated_at).filter(Boolean).sort().pop();
@@ -919,10 +919,11 @@ async function viewMyPlan(){
             <select data-k="${i}" data-j="${j}" ${dis} aria-label="${d} KPO">${kOpts(it.kpi_id)}</select>
             <input type="number" min="0" step="any" data-tg="${i}" data-j="${j}" value="${it.target??''}" placeholder="0" ${dis} aria-label="${d} target">
             <button type="button" class="x" data-rm="${i}" data-j="${j}" ${dis} aria-label="Remove KPO">×</button></div>`
-            :`<div class="pl note"><textarea data-tx="${i}" data-j="${j}" rows="2" placeholder="Write your comment" ${dis} aria-label="${d} comment">${esc(it.text||'')}</textarea>
-            <button type="button" class="x" data-rm="${i}" data-j="${j}" ${dis} aria-label="Remove comment">×</button></div>`).join('')}
+            :`<div class="pl"><input type="text" data-tx="${i}" data-j="${j}" value="${esc(it.text||'')}" placeholder="Write your plan" ${dis} aria-label="${d} plan">
+            <input type="number" min="0" step="any" data-tg="${i}" data-j="${j}" value="${it.target??''}" placeholder="0" ${dis} aria-label="${d} plan target">
+            <button type="button" class="x" data-rm="${i}" data-j="${j}" ${dis} aria-label="Remove plan">×</button></div>`).join('')}
           ${!st[i].items.length&&locked?'<span class="muted small">Nothing planned.</span>':''}
-          ${locked?'':(()=>{ const hasK=st[i].items.some(x=>x.t==='kpi'), hasC=st[i].items.some(x=>x.t==='note'); return `<div class="row" style="gap:6px"><button type="button" class="btn line sm" data-addk="${i}">+ Add KPO</button>${hasC?'':`<button type="button" class="btn line sm" data-addt="${i}">💬 Add comment</button>`}</div>`; })()}</td></tr>`).join('')}
+          ${locked?'':`<div class="row" style="gap:6px"><button type="button" class="btn line sm" data-addk="${i}">+ Add KPO</button><button type="button" class="btn line sm" data-addt="${i}">+ Add plan</button></div>`}</td></tr>`).join('')}
       </tbody></table></div>
       ${locked?'':`<div class="row" style="margin-top:12px"><button class="btn" type="submit">Save plan</button>
         ${(prev||[]).length?'<button class="btn line" type="button" id="mpCopy">Copy last week\'s plan</button>':''}
@@ -934,12 +935,12 @@ async function viewMyPlan(){
       b.querySelectorAll('[data-k]').forEach(s=>s.onchange=()=>{ const it=st[+s.dataset.k].items[+s.dataset.j]; const k=kById[s.value];
         it.kpi_id=s.value||null; it.target=k?(k.measure==='percent'?100:(k.period_target==null?null:Number(k.period_target))):null; draw(); });
       b.querySelectorAll('[data-addk]').forEach(x=>x.onclick=()=>{ st[+x.dataset.addk].items.push({t:'kpi',kpi_id:null,target:null,done:null}); draw(); });
-      b.querySelectorAll('[data-addt]').forEach(x=>x.onclick=()=>{ st[+x.dataset.addt].items.push({t:'note',text:''}); draw(); const t=b.querySelector(`[data-tx="${x.dataset.addt}"][data-j="${st[+x.dataset.addt].items.length-1}"]`); t&&t.focus(); });
+      b.querySelectorAll('[data-addt]').forEach(x=>x.onclick=()=>{ st[+x.dataset.addt].items.push({t:'text',text:'',target:null,done:null}); draw(); const t=b.querySelector(`[data-tx="${x.dataset.addt}"][data-j="${st[+x.dataset.addt].items.length-1}"]`); t&&t.focus(); });
       b.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{ const s=st[+x.dataset.rm]; s.items.splice(+x.dataset.j,1); draw(); });
       $('#mpCopy')&&($('#mpCopy').onclick=()=>{ (prev||[]).forEach(x=>{ const t=toState(x); t.items=t.items.map(it=>({...it,done:null})); st[x.day]=t; }); draw(); toast('Copied. Change what you need, then Save plan.'); });
       $('#mpF').onsubmit=async e=>{ e.preventDefault(); const bt=e.submitter; bt.disabled=true;
         const rows=st.map((s,i)=>{ const items=s.items.map(it=>{ if(it.t==='kpi'){ const k=kById[it.kpi_id]; if(!k) return null; return {t:'kpi',kpi_id:k.kpi_id,code:k.kpi_code,name:k.kpi_name,target:it.target,done:it.done??null}; }
-              const tx=(it.text||'').trim(); if(!tx) return null; return {t:'note',text:tx}; }).filter(Boolean);
+              const tx=(it.text||'').trim(); if(!tx&&it.target==null) return null; return {t:'text',text:tx||'Planned work',target:it.target,done:it.done??null}; }).filter(Boolean);
           return {officer_id:S.me.id, week_start:PL.week, day:i, location:s.location||null, items, activity:items.length?items.map(it=>lineName(it)+(it.target!=null?` (target ${it.target})`:'')).join('\n'):null, updated_at:new Date().toISOString()}; });
         const {error}=await sb.from('week_plans').upsert(rows,{onConflict:'officer_id,week_start,day'});
         bt.disabled=false; if(error) return err(error); toast('Plan saved.'); viewMyPlan(); };
@@ -1089,13 +1090,13 @@ async function setupPeople(){
     <label class="f" for="pf_fn">Function<select id="pf_fn">${opts(FUNCTIONS,p.function,'Choose function')}</select></label>
     <label class="f" for="pf_des">Designation<select id="pf_des" required>${opts(DESIGNATIONS,p.designation?desigOf(p.designation):'','Choose designation')}</select></label>
     <label class="f" for="pf_sup">Reports to (Manager)<select id="pf_sup"><option value="">None</option>${sups.filter(s=>s.id!==p.id).map(s=>`<option value="${esc(s.email)}" ${p.supervisor_email===s.email?'selected':''}>${esc(s.full_name)}${s.designation?' – '+esc(s.designation):''}</option>`).join('')}</select></label>
-    <label class="f" for="pf_role">Portal role<select id="pf_role">${[['officer','Officer'],['supervisor','Manager (approves officers)'],['admin','Admin (full access)']].map(([v,t])=>`<option value="${v}" ${p.role===v?'selected':''}>${t}</option>`).join('')}</select></label>
+    <label class="f" for="pf_role">Portal role<select id="pf_role">${[['officer','Officer'],['supervisor','Supervisor / Manager (approves their team)'],['admin','Admin (full access)']].map(([v,t])=>`<option value="${v}" ${p.role===v?'selected':''}>${t}</option>`).join('')}</select></label>
     <label class="f" for="pf_act">Status<select id="pf_act"><option value="1" ${p.active!==false?'selected':''}>Active</option><option value="0" ${p.active===false?'selected':''}>Inactive</option></select></label>
-   </div><p class="small muted" style="margin:0">Only people with the role Manager or Admin appear in "Reports to". A manager approves the weeks of everyone who reports to them.</p>
+   </div><p class="small muted" style="margin:0">Only people with the role Supervisor / Manager or Admin appear in "Reports to". They approve the weeks of the people who report to them; a manager also sees and can approve everyone under their supervisors.</p>
    <div class="row"><button class="btn" type="submit">${p.id?'Save person':'Add person'}</button>${p.id?'<button class="btn line" type="button" id="pfCancel">Cancel</button>':''}</div></form>`;
   const render=(edit)=>{ b.innerHTML = form(edit) + `
-    <div class="panel row"><div style="flex:1;min-width:220px"><b>Put officers under a manager</b><div class="small muted">Sets "Reports to" for every active officer, or only those without a manager.</div></div>
-      <label class="f" for="bm_m" style="min-width:220px">Manager<select id="bm_m">${sups.map(s=>`<option value="${esc(s.email)}">${esc(s.full_name)}</option>`).join('')||'<option value="">Add a Manager first</option>'}</select></label>
+    <div class="panel row"><div style="flex:1;min-width:220px"><b>Put officers under a supervisor or manager</b><div class="small muted">Sets "Reports to" for every active officer, or only those without a manager.</div></div>
+      <label class="f" for="bm_m" style="min-width:220px">Supervisor / Manager<select id="bm_m">${sups.map(s=>`<option value="${esc(s.email)}">${esc(s.full_name)}</option>`).join('')||'<option value="">Add a Manager first</option>'}</select></label>
       <label class="f" for="bm_w">Which officers<select id="bm_w"><option value="none">Only officers without a manager</option><option value="all">All active officers</option></select></label>
       <button class="btn line" type="button" id="bm_go">Apply</button></div>
     <div class="panel stack" id="credBox"><div class="row"><div style="flex:1;min-width:240px"><b>Send login details to everyone</b><div class="small muted">Makes a new password for every active person (except you), then gives you an ✉ Email button for each. Old passwords stop working.</div></div>
@@ -1117,7 +1118,7 @@ async function setupPeople(){
       const bad=CREDS.filter(c=>!c.pw).length; toast(bad?`${CREDS.length-bad} done, ${bad} failed.`:`${CREDS.length} passwords created. Now click ✉ Email for each person.`); render(); setTimeout(()=>$('#credBox')?.scrollIntoView({behavior:'smooth'}),50); };
     bindCreds();
     $('#pfCancel')&&($('#pfCancel').onclick=()=>render());
-    $('#bm_go').onclick=async()=>{ const m=$('#bm_m').value; if(!m) return toast('Add a person with the role Manager first.');
+    $('#bm_go').onclick=async()=>{ const m=$('#bm_m').value; if(!m) return toast('Give someone the role Supervisor / Manager first.');
       let q=sb.from('profiles').update({supervisor_email:m}).eq('role','officer').eq('active',true); if($('#bm_w').value==='none') q=q.is('supervisor_email',null);
       const {error}=await q; if(error) return err(error); toast('Officers updated.'); viewSetup(); };
     b.querySelectorAll('[data-pw]').forEach(x=>x.onclick=()=>{
