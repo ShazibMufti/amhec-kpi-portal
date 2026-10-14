@@ -375,6 +375,9 @@ const planCell = (x, kdone) => { const its=planItems(x); if(!x||(!x.location&&!i
   return `${x.location?`<b>${esc(x.location)}</b>`:''}${its.map((it,j)=>{ const d=kdone?kdone(it):it.done; return `<div class="sub">• ${esc(lineName(it))}${it.target!=null?` <span class="tg">Target ${num(it.target)}</span>`:''}${d!=null?` <span class="dn">done ${num(d)}</span>`:''}</div>`; }).join('')}`; };
 const planText = x => { const its=planItems(x); return [x?.location, ...its.map(it=>lineName(it)+(it.target!=null?` (target ${it.target})`:'')+(it.done!=null?` [done ${it.done}]`:''))].filter(Boolean).join('\n'); };
 function weeksOfMonth(y,m){ let s=satOf(new Date(y,m,1)); if(thuOf(ymd(s)).getMonth()!==m) s=addD(s,7); const out=[]; while(thuOf(ymd(s)).getMonth()===m){ out.push(ymd(s)); s=addD(s,7); } return out; }
+const inWeekScore = r => r.target!=null && (r.period==='day'||r.period==='week'||(Number(r.actual)||0)>0);
+const metRow = r => (ach(r.direction, r.measure==='percent'?100:r.target, r.actual, r.measure)||0) >= 0.999;
+const metPill = r => !inWeekScore(r) ? `<span class="sub">${r.target==null?'Record only':'Not counted (nothing entered)'}</span>` : metRow(r) ? '<span class="pill r-ex">✓ Target met</span>' : '<span class="pill r-po">✗ Not met</span>';
 const EVT_LABEL={submitted:'Submitted',approved:'Approved',returned:'Returned'};
 const evOf = r => { const e=r&&r.evidence; return {note:(e&&e.note)||'', links:Array.isArray(e&&e.links)?e.links.filter(Boolean):[]}; };
 const evCount = e => (e.note?1:0)+e.links.length;
@@ -665,15 +668,15 @@ async function openReview(sub, after){
   const md=document.createElement('div'); md.className='modal'; md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Review week">
     <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${esc(sub.profiles?.full_name||'')}</h2><div class="muted">Week of ${esc(wkLabel(sub.week_start))}</div></div>
     <div class="row">${spill(sub.status)}<button class="btn line sm" id="mClose">Close</button></div></div>
-    <div class="scroll"><table><thead><tr><th>KPO</th><th>Target</th><th>${dayHeadRO(sub.week_start)}</th><th>Weekly achievement</th></tr></thead><tbody>
+    <div class="scroll"><table><thead><tr><th>KPO</th><th>Target</th><th>${dayHeadRO(sub.week_start)}</th></tr></thead><tbody>
     ${rows.map(r=>{ const wk=(r.period==='day'||r.period==='week'||r.measure==='percent')&&r.target!=null;
-      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">🔗 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
-      <td>${dayRO(r)}</td><td>${wk?meter(ach(r.direction,r.target,r.actual,r.measure)):'<span class="sub">Counts in '+(r.period==='event'?'month':esc(r.period))+' score</span>'}</td></tr>`;}).join('')}
+      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div><div style="margin-top:4px">${metPill(r)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">🔗 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
+      <td>${dayRO(r)}</td></tr>`;}).join('')}
     </tbody></table></div>
     ${pLines.length?`<h2 style="margin:6px 0 0">Officer's plan</h2><div class="scroll"><table><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
       ${pLines.map(l=>`<tr><td>${DAYN[l.d]} ${esc(shortD(ymd(addD(parse(sub.week_start),l.d))))}</td><td>${esc(l.loc||'–')}</td><td>${esc(lineName(l.it))}${l.it.t==='kpi'?'':' <span class="pill">Own plan</span>'}</td><td class="n">${l.it.target==null?'–':num(l.it.target)}</td><td class="n"><b>${l.done==null?'–':num(l.done)}</b></td></tr>`).join('')}
     </tbody></table></div>`:''}
-    <div class="row"><b>Week score: ${pct(sub.score)}</b> ${rpill(sub.score)} <span class="small muted">Includes the officer's plan targets.</span></div>
+    <div class="row"><b>Week score: ${pct(sub.score)}</b> ${rpill(sub.score)} <span class="small muted">KPOs and plan lines with the target met ÷ all counted. Daily and weekly KPOs always count; monthly, quarterly and yearly ones count only in weeks where something was entered.</span></div>
     ${(evs||[]).length?`<ol class="tl">${evs.map(e=>`<li class="ev-${esc(e.action)}"><b>${EVT_LABEL[e.action]||esc(e.action)}</b> by ${esc(e.by_name||'–')} <span class="muted small">· ${new Date(e.at).toLocaleString()}</span>${e.remarks?`<div class="sub">“${esc(e.remarks)}”</div>`:''}</li>`).join('')}</ol>`:''}
     ${sub.officer_remarks?`<div class="note"><b>Officer remarks:</b> ${esc(sub.officer_remarks)}</div>`:''}
     ${canAct?`<label class="f" for="mRem">Your remarks (required to send back)<textarea id="mRem"></textarea></label>
@@ -700,7 +703,7 @@ const weekBounds = () => { const [from,to]=period(); return D.type==='week' ? [D
 async function viewDashboard(){
   const m=$('#main'); const years=[]; for(let y=new Date().getFullYear(); y>=2026; y--) years.push(y);
   const groups=[...new Set(S.team.map(p=>p.designation).filter(Boolean))].sort();
-  m.innerHTML=`<h1>Dashboard</h1><p class="lead">Team performance for any period. A KPO counts once its period fits: weekly views use daily and weekly KPOs, monthly views add monthly KPOs, and the year view uses all of them.</p>
+  m.innerHTML=`<h1>Dashboard</h1><p class="lead">Team performance for any period. A week's score is the share of counted KPOs whose target was met; month, quarter and year scores are the average of the submitted weeks.</p>
   <div class="panel row" style="margin-bottom:16px">
     <label class="f" for="dType">View<select id="dType">${[['week','Week'],['month','Month'],['quarter','Quarter'],['year','Year']].map(([v,t])=>`<option value="${v}" ${D.type===v?'selected':''}>${t}</option>`).join('')}</select></label>
     <label class="f" for="dYear">Year<select id="dYear">${years.map(y=>`<option ${D.year===y?'selected':''}>${y}</option>`).join('')}</select></label>
@@ -816,7 +819,7 @@ async function exportExcel(){
         'Weekly target':k.target==null?'':Math.round(k.target*100)/100,
         ...Object.fromEntries(DAYN.map((d,i)=>[d+' '+shortD(ymd(addD(parse(k.week_start),i))).split(' ')[0], Array.isArray(k.daily)&&k.daily[i]!==''&&k.daily[i]!=null?Number(k.daily[i]):''])),
         'Reference/Location':DAYN.map((d,i)=>refOf(k,i)?d+': '+refOf(k,i):'').filter(Boolean).join('; '),
-        'Done this week':Number(k.actual)||0, Evidence:evText(evOf(k)), 'Weekly achievement %':wk?Math.round(ach(k.direction,k.target,k.actual,k.measure)*100):'',
+        'Done this week':Number(k.actual)||0, Evidence:evText(evOf(k)), 'Counted in week score':inWeekScore(k)?'Yes':'No', 'Target met':inWeekScore(k)?(metRow(k)?'Yes':'No'):'',
         'Week score %':s.score!=null?Math.round(s.score*100):'', Status:s.status, 'Reviewed by':s.reviewed_by||'', 'Manager remarks':s.supervisor_remarks||'', 'Officer remarks':s.officer_remarks||''}; })
       .sort((a,b)=>(a.Officer||'').localeCompare(b.Officer||'')||a['Week start (Sat)'].localeCompare(b['Week start (Sat)'])||(a['KPO ID']||'').localeCompare(b['KPO ID']||''));
     if(!rows.length) return toast('No submitted weeks in this period to export.');
