@@ -173,6 +173,14 @@ details.perf .tiles{margin:0}
 .evb{margin-top:6px;border:1px dashed #c7d2fe;background:#fff;color:var(--muted);border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer}
 .evb:hover{color:var(--brand);border-color:var(--brand)}
 .evb.on{border-style:solid;background:#eef2ff;color:var(--brand);font-weight:600}
+.viewbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+.chgbar{position:sticky;top:60px;z-index:20;display:flex;gap:10px;align-items:center;background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:10px;padding:8px 12px;margin:0 0 12px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+.chgbar[hidden]{display:none}
+input.sv{background:#f0fdf4;border-color:#bbf7d0}
+input.chg,select.chg,textarea.chg{background:#fef9c3!important;border-color:#f59e0b!important;box-shadow:0 0 0 2px rgba(245,158,11,.2)}
+form.todayMode .dg{grid-template-columns:150px 64px}
+form.todayMode .dg > .dc:not(.tdc), form.todayMode .dg.dh > .dbtn:not(.td){display:none}
+form.todayMode .dg .tdc input{font-size:17px;padding:9px 8px}
 a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .evf{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#f8fafc}
 .evf .x{height:28px;width:28px}
@@ -462,7 +470,7 @@ async function viewMy(){
     const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')} · ${esc(r.category||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>`;
     const dayRow = r => { const dv=dayVals(r), pc=r.measure==='percent';
       return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div>${evBtn(r)}</td>
-        <td><div class="dg">${DAYN.map((d,i)=>{ const ref=refOf(r,i); return `<div class="dc"><input type="number" min="0" ${pc?'max="100"':''} step="any" class="dv ${i===todayIdx?'td':''}" data-r="${r.id}" data-i="${i}" value="${esc(dv[i]??'')}" placeholder="${pc?'%':'0'}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d}">
+        <td><div class="dg">${DAYN.map((d,i)=>{ const ref=refOf(r,i); return `<div class="dc ${i===todayIdx?'tdc':''}"><input type="number" min="0" ${pc?'max="100"':''} step="any" class="dv ${i===todayIdx?'td':''}" data-r="${r.id}" data-i="${i}" value="${esc(dv[i]??'')}" placeholder="${pc?'%':'0'}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d}">
             <select class="lc ${ref?'set':''}" data-r="${r.id}" data-i="${i}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d} location">${locOpts(locList(),ref)}</select></div>`; }).join('')}
           <b class="tot" id="tot_${r.id}">${pc?(r.actual==null?'–':num(r.actual)+'%'):num(Number(r.actual)||0)}</b></div></td></tr>`; };
     // period sections: columns = sub-periods; the current one holds this week's input
@@ -513,7 +521,10 @@ async function viewMy(){
       </div>
         ${st==='returned'?`<div class="note bad" style="margin-bottom:10px"><b>Returned by ${esc(sub.reviewed_by||'manager')}:</b> ${esc(sub.supervisor_remarks)}</div>`:''}
         ${st==='approved'?`<div class="note good" style="margin-bottom:10px">Approved by ${esc(sub.reviewed_by)}${sub.supervisor_remarks?': '+esc(sub.supervisor_remarks):''}</div>`:''}
-        <form id="myF">
+        ${todayIdx>=0&&!locked?`<div class="viewbar"><div class="seg" role="group" aria-label="View"><button type="button" data-vm="today" class="${S.fullWeek?'':'on'}">Today – ${DAYN[todayIdx]} ${addD(parse(S.week),todayIdx).getDate()}</button><button type="button" data-vm="week" class="${S.fullWeek?'on':''}">Full week (edit any day)</button></div>
+          <span class="small muted">${S.fullWeek?'All days are open. Click any box to change it, then Save draft.':'Showing only today. Earlier days are kept in the Week total; open Full week to see or edit them.'}</span></div>`:''}
+        <div class="chgbar" id="chgBar" hidden><span id="chgN">0 unsaved changes</span><button class="btn sm" type="button" id="chgSave">Save draft</button><button class="btn line sm" type="button" id="chgUndo">Undo changes</button></div>
+        <form id="myF" class="${todayIdx>=0&&!locked&&!S.fullWeek?'todayMode':''}">
           ${planHtml}
           ${grp('Daily KPOs',G.dy,dayHead(),dayRow,true,'Daily and event-driven KPOs. Enter each day\'s number and pick the client or location under it.')}
           ${grp('Weekly KPOs',G.wk,dayHead(),dayRow,true)}
@@ -550,6 +561,16 @@ async function viewMy(){
       const pt=$('#pt_'+id); if(pt) pt.firstChild.textContent=num(Number(pt.dataset.prev)+v);
       const cm=$('#cm_'+id); if(cm) cm.textContent=num(Number(cm.dataset.base)+v);
       const pw=$('#pw_'+id); if(pw) pw.textContent=num(v)+' this week'; }));
+    document.querySelectorAll('[data-vm]').forEach(b=>b.onclick=()=>{ S.fullWeek=b.dataset.vm==='week'; document.querySelectorAll('[data-vm]').forEach(x=>x.classList.toggle('on',x===b));
+      $('#myF').classList.toggle('todayMode',!S.fullWeek); b.parentElement.nextElementSibling.textContent=S.fullWeek?'All days are open. Click any box to change it, then Save draft.':'Showing only today. Earlier days are kept in the Week total; open Full week to see or edit them.'; });
+    const trackSel='#myF input.dv,#myF input.wv,#myF input.pm,#myF input.pd,#myF select.lc,#rem';
+    document.querySelectorAll(trackSel).forEach(el=>{ el.dataset.orig=el.value; if(el.value!==''&&el.matches('input')) el.classList.add('sv'); });
+    const countChg=()=>{ let n=0; const seen=new Set(); document.querySelectorAll(trackSel).forEach(el=>{ const ch=el.value!==el.dataset.orig; el.classList.toggle('chg',ch);
+        const key=el.matches('input.pm')?`dv|${el.dataset.r}|${el.dataset.i}`:el.matches('input.dv')?`dv|${el.dataset.r}|${el.dataset.i}`:el; if(ch&&!seen.has(key)){ seen.add(key); n++; } });
+      const bar=$('#chgBar'); if(bar){ bar.hidden=!n; $('#chgN').textContent=`${n} unsaved change${n===1?'':'s'}`; } return n; };
+    document.querySelectorAll(trackSel).forEach(el=>{ el.addEventListener('input',()=>setTimeout(countChg)); el.addEventListener('change',()=>setTimeout(countChg)); });
+    $('#chgSave')&&($('#chgSave').onclick=()=>document.querySelector('#myF button[data-submit="0"]')?.click());
+    $('#chgUndo')&&($('#chgUndo').onclick=()=>{ document.querySelectorAll(trackSel).forEach(el=>{ if(el.value!==el.dataset.orig){ el.value=el.dataset.orig; el.dispatchEvent(new Event('input',{bubbles:true})); } }); countChg(); toast('Changes undone.'); });
     $('#myF')?.addEventListener('submit', async e=>{
       e.preventDefault(); const submit = e.submitter?.dataset.submit==='1';
       const vals={}; let bad=false;
@@ -560,10 +581,10 @@ async function viewMy(){
       if(bad) return toast('Percentage KPOs must be between 0 and 100.');
       const plan={}; DAYN.forEach((d,i)=>{ const its=planItems(pl[i]); if(!its.length) return;
         plan[i]=its.map((it,j)=>{ const el=document.querySelector(`input.pd[data-d="${i}"][data-j="${j}"]`); return el?el.value:null; }); });
-      e.submitter.disabled=true;
+      const nChg=countChg(); e.submitter.disabled=true;
       const {error}=await sb.rpc('save_week_v2',{p_week:S.week,p_values:vals,p_remarks:$('#rem').value.trim(),p_submit:submit,p_plan:plan});
       if(error){ err(error); e.submitter.disabled=false; return; }
-      toast(submit?'Week submitted for approval.':'Draft saved.'); viewMy();
+      toast(submit?'Week submitted for approval.':(nChg?`Draft saved – ${nChg} change${nChg===1?'':'s'}.`:'Draft saved.')); viewMy();
     });
   }catch(x){ err(x); $('#myBody').innerHTML='<b>Could not load your KPOs</b>Check your connection and refresh the page.'; }
 }
