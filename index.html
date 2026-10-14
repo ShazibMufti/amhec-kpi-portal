@@ -930,7 +930,10 @@ async function openRefresh(officer, week, name, onDone){
   document.body.appendChild(md);
   md.querySelector('#rfX').onclick=()=>md.remove();
   const go=md.querySelector('#rfGo'); if(go) go.onclick=async()=>{ go.disabled=true;
-    const {error:e2}=await sb.rpc('refresh_week_kpis',{p_officer:officer,p_week:week,p_apply:true}); if(e2){ go.disabled=false; return err(e2); }
+    const {data:res,error:e2}=await sb.rpc('refresh_week_kpis',{p_officer:officer,p_week:week,p_apply:true}); if(e2){ go.disabled=false; return err(e2); }
+    const ids=(res?.removed||[]).map(k=>k.id).filter(Boolean);
+    if(ids.length){ const {error:e3}=await sb.from('week_kpis').delete().in('id',ids); if(e3){ go.disabled=false; return err(e3); } }
+    await sb.rpc('recalc_score',{p_officer:officer,p_week:week});
     md.remove(); toast(`KPOs refreshed: ${add.length} added, ${rem.length} removed.`); onDone&&onDone(); };
 }
 async function openRefreshAll(){
@@ -949,7 +952,10 @@ async function openRefreshAll(){
   md.querySelector('#raAll').onchange=e=>{ md.querySelectorAll('[data-ra]').forEach(c=>c.checked=e.target.checked); upd(); };
   md.querySelectorAll('[data-ra]').forEach(c=>c.onchange=upd);
   md.querySelector('#raGo').onclick=async e=>{ const pick=sel(); e.target.disabled=true;
-    const {error:e2}=await sb.rpc('refresh_future_weeks',{p_apply:true,p_only:pick.map(r=>({officer_id:r.officer_id,week_start:r.week_start}))}); if(e2){ e.target.disabled=false; return err(e2); }
+    const {data:done,error:e2}=await sb.rpc('refresh_future_weeks',{p_apply:true,p_only:pick.map(r=>({officer_id:r.officer_id,week_start:r.week_start}))}); if(e2){ e.target.disabled=false; return err(e2); }
+    const ids=(done||[]).flatMap(r=>r.remove_ids||[]).filter(Boolean);
+    for(let i=0;i<ids.length;i+=100){ const {error:e3}=await sb.from('week_kpis').delete().in('id',ids.slice(i,i+100)); if(e3){ e.target.disabled=false; return err(e3); } }
+    for(const r of pick) if(r.status!=='draft') await sb.rpc('recalc_score',{p_officer:r.officer_id,p_week:r.week_start});
     md.remove(); toast(`${pick.length} weeks updated to the new KPOs.`); };
 }
 function confirmInline(btn,txt){ if(btn.dataset.armed){ return true; } btn.dataset.armed='1'; const o=btn.textContent; btn.textContent=txt; setTimeout(()=>{btn.textContent=o; delete btn.dataset.armed;},3500); return false; }
