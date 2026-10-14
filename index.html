@@ -471,7 +471,7 @@ async function viewMy(){
                    qt: qm.map(mm=>({key:mm, label:MON[mm], cur:mm===M, fut:mm>M})),
                    yr: MON.map((x,mm)=>({key:mm, label:x, cur:mm===M, fut:mm>M})) };
     const pHead = g => `<div class="pgg" style="--n:${cols[g].length}">${cols[g].map(c=>`<span class="${c.cur?'td':''}" title="${esc(c.title||c.label)}">${esc(c.label)}</span>`).join('')}${g==='mo'?'':'<span class="td">This week</span>'}<span class="tot">Total</span></div>`;
-    const pInput = r => `<div class="dc"><input type="number" min="0" step="any" class="wv td" data-r="${r.id}" value="${esc(r.actual??'')}" placeholder="0" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} this week">
+    const pInput = r => `<div class="dc"><input type="number" min="0" step="any" class="wv td" data-r="${r.id}" value="${hasEntry(r)?esc(r.actual??''):''}" placeholder="0" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} this week">
         <select class="lc ${refOf(r,0)?'set':''}" data-r="${r.id}" data-i="0" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} location">${locOpts(locList(),refOf(r,0))}</select></div>`;
     const pRow = (g,r) => { const pv=before(r);
       const cells=cols[g].map(c=>{ if(g==='mo') return c.cur?pInput(r):`<span class="pv">${c.fut?'·':num(wkSum(r,c.key))}</span>`;
@@ -501,13 +501,14 @@ async function viewMy(){
           <td class="n"><b>${p.it.target==null?'–':num(p.it.target)}</b></td><td class="n">${inp}</td></tr>`; }).join('')}
       </tbody></table></div></details>`
       : `<div class="note" style="margin-bottom:12px">No plan for this week. <a class="link" href="#myplan">Make your plan</a> – where you go each day, what you will do and your targets.</div>`;
-    const filled = rows.filter(r=>r.actual!=null).length;
+    const hasEntry = r => (Array.isArray(r.daily) ? r.daily.some(v=>v!==''&&v!=null) : (r.actual!=null&&Number(r.actual)!==0)) || (Number(r.actual)||0)>0;
+    const filled = rows.filter(hasEntry).length;
     const evsOf = k => evs.filter(e=>e.week_start===k);
     if(!rows.length&&!planRows.length){ body.className='empty'; body.innerHTML=`<b>No KPOs assigned for this week</b>KPOs come from your designation (${esc(S.me.designation||'not set')}). Ask QHSE to check your designation.`; return; }
     body.innerHTML = `<div class="tiles" style="margin-bottom:16px">
         <div class="tile"><span class="k">This week's score</span><span class="v" style="color:${col(sub?.score)}">${pct(sub?.score)}</span><span class="s">${rpill(sub?.score)}</span></div>
         <div class="tile"><span class="k">KPOs this week</span><span class="v">${rows.length}</span><span class="s">${planRows.length?planRows.length+' plan lines':esc(S.me.designation||'')}</span></div>
-        <div class="tile"><span class="k">Filled in</span><span class="v">${filled}/${rows.length}</span><span class="s">Saved KPOs this week</span></div>
+        <div class="tile"><span class="k">Filled in</span><span class="v" id="filledN">${filled}/${rows.length}</span><span class="s">KPOs with an entry this week</span></div>
         <div class="tile"><span class="k">Status</span><span class="v" style="font-size:22px;margin-top:6px">${spill(st)}</span><span class="s">${sub?.submitted_at?'Submitted '+new Date(sub.submitted_at).toLocaleDateString():'Submit by Friday'}</span></div>
       </div>
         ${st==='returned'?`<div class="note bad" style="margin-bottom:10px"><b>Returned by ${esc(sub.reviewed_by||'manager')}:</b> ${esc(sub.supervisor_remarks)}</div>`:''}
@@ -539,6 +540,8 @@ async function viewMy(){
     document.querySelectorAll('select.lc').forEach(sel=>sel.addEventListener('change',()=>sel.classList.toggle('set',!!sel.value)));
     const totalOf = (r,v) => { const n=v.filter(x=>x!=='').map(Number); return r.measure==='percent' ? (n.length? n.reduce((a,b)=>a+b,0)/n.length : null) : n.reduce((a,b)=>a+b,0); };
     const refresh = id => { const r=byId[id]; const t=totalOf(r,daysOf(id)); const el=$('#tot_'+id); if(el) el.textContent = r.measure==='percent' ? (t==null?'–':num(t)+'%') : num(t); };
+    const liveFilled = () => { const n=rows.filter(r=>{ const wv=document.querySelector(`input.wv[data-r="${r.id}"]`); if(wv) return wv.value!==''; const ins=[...document.querySelectorAll(`input.dv[data-r="${r.id}"]`)]; return ins.length ? (ins.some(x=>x.value!=='') || (!Array.isArray(r.daily)&&(Number(r.actual)||0)>0)) : hasEntry(r); }).length; const el=$('#filledN'); if(el) el.textContent=`${n}/${rows.length}`; };
+    document.querySelectorAll('input.dv,input.wv,input.pm').forEach(inp=>inp.addEventListener('input',()=>setTimeout(liveFilled)));
     document.querySelectorAll('input.dv').forEach(inp=>inp.addEventListener('input',()=>{ refresh(inp.dataset.r);
       const pm=document.querySelector(`input.pm[data-r="${inp.dataset.r}"][data-i="${inp.dataset.i}"]`); if(pm) pm.value=inp.value; }));
     document.querySelectorAll('input.pm').forEach(pm=>pm.addEventListener('input',()=>{ const dv=document.querySelector(`input.dv[data-r="${pm.dataset.r}"][data-i="${pm.dataset.i}"]`);
