@@ -1473,7 +1473,7 @@ function irEdit(r0){
       <div class="grid3">${['bc1','bc2','bc3','bc4','bc5'].map((k,i)=>sel(k,'Basic cause '+(i+1),bcOpts())).join('')}</div>
       <label class="f" for="ir_root_cause">Identified root cause<textarea id="ir_root_cause" data-k="root_cause" rows="3">${esc(r.root_cause||'')}</textarea></label>
       </fieldset>
-      ${canEdit?`<div class="row"><button class="btn" type="submit">${isNew?'Save IR':'Save changes'}</button>${!isNew&&!irDone(r0)?'<span class="small muted">Set "Investigation completed?" to Yes and add the completion date to close this IR.</span>':''}</div>`:''}</form>`;
+      ${canEdit?`<div class="row"><button class="btn" type="button" id="irSave">${isNew?'Save IR':'Save changes'}</button>${!isNew&&!irDone(r0)?'<span class="small muted">Set "Investigation completed?" to Yes and add the completion date to close this IR.</span>':''}</div>`:''}</form>`;
     md.querySelectorAll('[data-k]').forEach(el=>el.onchange=()=>{ const k=el.dataset.k; r[k]=el.value===''?null:el.value;
       fillUp(k);
       const keep=(x,list)=>{ if(r[x]&&!list.includes(r[x])) r[x]=null; };
@@ -1486,7 +1486,8 @@ function irEdit(r0){
         const y=md.scrollTop; draw(); md.scrollTop=y; }
       if(k==='inv_status'&&el.value==='Yes'&&!r.completion_date){ r.completion_date=ymd(new Date()); const c=md.querySelector('#ir_completion_date'); if(c) c.value=r.completion_date; } });
     md.querySelector('#irX').onclick=()=>md.remove();
-    md.querySelector('form').onsubmit=async e=>{ e.preventDefault();
+    const save=async()=>{
+      for(const id of ['ir_aisf','ir_date_assigned']){ const el=md.querySelector('#'+id); if(el&&!el.value.trim()){ el.focus(); return toast(id==='ir_aisf'?'Enter the AISF#.':'Enter the date assigned.'); } }
       md.querySelectorAll('input[data-k],textarea[data-k]').forEach(el=>r[el.dataset.k]=el.value.trim()===''?null:el.value.trim());
       const o=md.querySelector('#ir_officer'); if(o){ r.officer_id=o.value; r.assigned_to=people.find(p=>p.id===o.value)?.full_name; }
       if(r.inv_status==='Yes'&&!r.completion_date) return toast('Add the completion date to close this IR.');
@@ -1497,6 +1498,8 @@ function irEdit(r0){
       const {data,error}=await q; if(error) return err(error);
       const saved=Object.assign({},r,data||{}); if(isNew){ saved.id=saved.id||('n'+Date.now()); IR.rows.unshift(saved); } else IR.rows[IR.rows.findIndex(x=>x.id===r.id)]=saved;
       md.remove(); toast(isNew?'IR saved.':'IR updated.'); irList(); };
+    md.querySelector('form').onsubmit=e=>{ e.preventDefault(); save(); };
+    const sv=md.querySelector('#irSave'); if(sv) sv.onclick=save;
   };
   document.body.appendChild(md); draw();
 }
