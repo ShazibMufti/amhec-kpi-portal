@@ -187,6 +187,8 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .irf fieldset{border:0;padding:0;margin:0;display:grid;gap:12px;min-width:0}
 .irf h3{margin:8px 0 0;font-size:14px;color:var(--brand);border-bottom:1px solid var(--line);padding-bottom:6px}
 table.irt tbody tr{cursor:pointer} table.irt tbody tr:hover{background:#f8fafc} table.irt tr.late td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+.bulk{position:sticky;bottom:0;background:#fff7f7;border:1px solid var(--bad-bg);border-radius:10px;padding:10px 12px;gap:10px;align-items:flex-end}
+td.ck,th:has(#irAll){width:28px}
 .small.bad{color:var(--bad);font-weight:600}
 .hb{flex:1;height:10px;background:var(--sunk,#eef2f7);border-radius:6px;overflow:hidden;min-width:60px} .hb span{display:block;height:100%;border-radius:6px}
 .hbr{display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 34px;gap:8px;align-items:center;margin:6px 0} .hbr>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1354,6 +1356,13 @@ const IRF = [ // key, Excel header (same order as the Master File)
 const IR = { tab:'list', q:'', st:'', yr:'', who:'', rows:null, year:String(new Date().getFullYear()), per:'year' };
 const irL = () => S.lists.ir_lists || {};
 const irDone = r => (r.inv_status||'')==='Yes';
+const irDup = r => /duplicate/i.test([r.closure_note,r.completion_date,r.final_report_date,r.root_cause].join(' '));
+const irInc = r => !r.classification || !r.tcnc1 || !r.ic1 || !r.bc1;
+async function irRemove(list, reason){ // admin only; a copy of each IR is kept in the removal log
+  const {error:e1}=await sb.from('investigations_removed').insert(list.map(r=>({ir_id:r.id,aisf:r.aisf,reason,removed_by:S.me.full_name,data:r})));
+  if(e1){ err(e1); return false; }
+  for(let i=0;i<list.length;i+=200){ const {error}=await sb.from('investigations').delete().in('id',list.slice(i,i+200).map(r=>r.id)); if(error){ err(error); return false; } }
+  const gone=new Set(list.map(r=>r.id)); IR.rows=IR.rows.filter(r=>!gone.has(r.id)); return true; }
 const irStatus = r => irDone(r) ? '<span class="pill s-approved">Completed</span>' : '<span class="pill s-submitted">In progress</span>';
 const irAge = r => isoD(r.date_assigned) ? Math.round((Date.now()-parse(r.date_assigned))/864e5) : null;
 const isoD = d => typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
@@ -1380,7 +1389,7 @@ async function viewIR(){
   try{ if(!IR.rows) IR.rows=await irFetch(); ({list:irList,dash:irDash,clean:irClean})[IR.tab](); }catch(x){ err(x); }
 }
 function irFilter(rows){ const q=IR.q.toLowerCase();
-  return rows.filter(r=>(!IR.st||(IR.st==='done'?irDone(r):!irDone(r)))&&(!IR.yr||(r.date_assigned||'').startsWith(IR.yr))&&(!IR.who||r.officer_id===IR.who)
+  return rows.filter(r=>(!IR.st||({done:irDone(r),open:!irDone(r),dup:irDup(r),inc:irInc(r)})[IR.st])&&(!IR.yr||(r.date_assigned||'').startsWith(IR.yr))&&(!IR.who||r.officer_id===IR.who)
     &&(!q||[r.aisf,r.ir_no,r.description,r.classification,r.equip_type,r.client,r.site,r.assigned_to].join(' ').toLowerCase().includes(q))); }
 function irList(){
   const b=$('#irBody'); b.className='stack'; const rows=IR.rows;
@@ -1398,27 +1407,36 @@ function irList(){
       <div class="row" style="gap:10px;align-items:flex-end">
         <label class="f" for="irQ" style="flex:1;min-width:220px">Search<input id="irQ" type="search" value="${esc(IR.q)}" placeholder="AISF#, IR number, equipment, client, site…"></label>
         <label class="f" for="irY" style="width:120px">Year<select id="irY"><option value="">All</option>${yrs.map(y=>`<option ${IR.yr===y?'selected':''}>${y}</option>`).join('')}</select></label>
-        <label class="f" for="irS" style="width:150px">Status<select id="irS"><option value="">All</option><option value="open" ${IR.st==='open'?'selected':''}>In progress</option><option value="done" ${IR.st==='done'?'selected':''}>Completed</option></select></label>
+        <label class="f" for="irS" style="width:150px">Status<select id="irS"><option value="">All</option><option value="open" ${IR.st==='open'?'selected':''}>In progress</option><option value="done" ${IR.st==='done'?'selected':''}>Completed</option>${isAdmin()?`<optgroup label="Data check"><option value="dup" ${IR.st==='dup'?'selected':''}>Marked duplicate (${rows.filter(irDup).length})</option><option value="inc" ${IR.st==='inc'?'selected':''}>Incomplete data (${rows.filter(irInc).length})</option></optgroup>`:''}</select></label>
         ${isMgr()?`<label class="f" for="irW" style="width:220px">Officer<select id="irW"><option value="">Everyone</option>${people.map(([id,n])=>`<option value="${id}" ${IR.who===id?'selected':''}>${esc(n)}</option>`).join('')}</select></label>`:''}
         <button class="btn" id="irNew">+ New IR</button>
         ${isMgr()?'<button class="btn line" id="irXls">Download Excel</button>':''}
       </div>
-      <div class="scroll"><table class="irt"><thead><tr><th>AISF#</th><th>IR No.</th>${isMgr()?'<th>Officer</th>':''}<th>Date assigned</th><th>Classification</th><th>Equipment</th><th>Site / client</th><th>Status</th><th>Completed</th><th></th></tr></thead><tbody id="irRows"></tbody></table></div>
-      <div id="irMore"></div></div>`;
+      <div class="scroll"><table class="irt"><thead><tr>${isAdmin()?'<th><input type="checkbox" id="irAll" aria-label="Select all shown"></th>':''}<th>AISF#</th><th>IR No.</th>${isMgr()?'<th>Officer</th>':''}<th>Date assigned</th><th>Classification</th><th>Equipment</th><th>Site / client</th><th>Status</th><th>Completed</th><th></th></tr></thead><tbody id="irRows"></tbody></table></div>
+      <div id="irMore"></div>
+      ${isAdmin()?`<div class="row bulk" id="irBulk" hidden><b id="irSelN"></b><label class="f" for="irWhy" style="width:220px">Reason<select id="irWhy"><option>Duplicate IR</option><option>Incomplete / wrong entry</option><option>Other</option></select></label><button class="btn warn" id="irDel">Remove selected</button><button class="btn line" id="irClr" type="button">Clear selection</button></div>`:''}</div>`;
   const draw=()=>{ $('#irRows').innerHTML=show.slice(0,lim).map(r=>{ const a=irAge(r);
-      return `<tr data-ir="${esc(r.id)}" class="${!irDone(r)&&a>30?'late':''}"><td><b>${esc(r.aisf||'')}</b></td><td class="small">${esc(r.ir_no||'')}</td>${isMgr()?`<td class="small">${esc(r.assigned_to||'')}</td>`:''}
+      return `<tr data-ir="${esc(r.id)}" class="${!irDone(r)&&a>30?'late':''}">${isAdmin()?`<td class="ck"><input type="checkbox" data-ck="${esc(r.id)}" ${SEL.has(String(r.id))?'checked':''} aria-label="Select IR"></td>`:''}<td><b>${esc(r.aisf||'')}</b></td><td class="small">${esc(r.ir_no||'')}</td>${isMgr()?`<td class="small">${esc(r.assigned_to||'')}</td>`:''}
         <td class="small" style="white-space:nowrap">${fmtD(r.date_assigned)}</td><td><div class="small muted">${esc(r.category||'')}</div>${esc(r.classification||'')}${r.hipo==='Yes'?' <span class="pill s-returned">HiPO</span>':''}</td>
         <td class="small">${esc(r.equip_type||r.equip_group||'')}</td><td class="small">${esc([r.site,r.client&&r.client!=='N/A'?r.client:''].filter(Boolean).join(' · '))}</td>
-        <td>${irStatus(r)}${!irDone(r)&&a!=null?`<div class="small ${a>30?'bad':'muted'}">${a} days open</div>`:''}</td><td class="small" style="white-space:nowrap">${fmtD(r.completion_date)}</td>
+        <td>${irStatus(r)}${isAdmin()&&irDup(r)?' <span class="pill s-returned">Duplicate?</span>':''}${isAdmin()&&irInc(r)?' <span class="pill s-draft">Incomplete</span>':''}${!irDone(r)&&a!=null?`<div class="small ${a>30?'bad':'muted'}">${a} days open</div>`:''}</td><td class="small" style="white-space:nowrap">${fmtD(r.completion_date)}</td>
         <td><button class="btn line sm">${irDone(r)?'View':'Update'}</button></td></tr>`; }).join('')||`<tr><td colspan="10" class="muted">No IR reports match.</td></tr>`;
     $('#irMore').innerHTML=show.length>lim?`<button class="btn line" id="irM">Show more (${show.length-lim} more)</button>`:'';
     $('#irM')&&($('#irM').onclick=()=>{lim+=200; draw();});
-    b.querySelectorAll('[data-ir]').forEach(tr=>tr.onclick=()=>irEdit(IR.rows.find(r=>String(r.id)===tr.dataset.ir))); };
+    b.querySelectorAll('[data-ir]').forEach(tr=>tr.onclick=e=>{ if(e.target.closest('.ck')) return; irEdit(IR.rows.find(r=>String(r.id)===tr.dataset.ir)); });
+    b.querySelectorAll('[data-ck]').forEach(c=>c.onchange=()=>{ c.checked?SEL.add(c.dataset.ck):SEL.delete(c.dataset.ck); bulk(); }); bulk(); };
+  const SEL=IR.sel=IR.sel||new Set();
+  const bulk=()=>{ const bar=$('#irBulk'); if(!bar) return; bar.hidden=!SEL.size; $('#irSelN').textContent=SEL.size+' selected'; };
   draw();
   let t; $('#irQ').oninput=e=>{ clearTimeout(t); t=setTimeout(()=>{IR.q=e.target.value; irList(); const el=$('#irQ'); el.focus(); el.setSelectionRange(99,99);},300); };
   $('#irY').onchange=e=>{IR.yr=e.target.value; irList();}; $('#irS').onchange=e=>{IR.st=e.target.value; irList();};
   $('#irW')&&($('#irW').onchange=e=>{IR.who=e.target.value; irList();});
   $('#irNew').onclick=()=>irEdit(null);
+  $('#irAll')&&($('#irAll').onchange=e=>{ show.slice(0,lim).forEach(r=>e.target.checked?SEL.add(String(r.id)):SEL.delete(String(r.id))); draw(); });
+  $('#irClr')&&($('#irClr').onclick=()=>{ SEL.clear(); draw(); });
+  $('#irDel')&&($('#irDel').onclick=async()=>{ const list=IR.rows.filter(r=>SEL.has(String(r.id))); if(!list.length) return;
+    if(!confirmInline($('#irDel'),`Click again to remove ${list.length} IR${list.length>1?'s':''}`)) return;
+    if(await irRemove(list,$('#irWhy').value)){ SEL.clear(); toast(`${list.length} IR removed. A copy is kept in the removal log.`); irList(); } });
   $('#irXls')&&($('#irXls').onclick=()=>irExcel(f,'AMHEC_IR_Master'+(IR.yr?'_'+IR.yr:'')));
 }
 function irExcel(rows,name){
@@ -1473,7 +1491,8 @@ function irEdit(r0){
       <div class="grid3">${['bc1','bc2','bc3','bc4','bc5'].map((k,i)=>sel(k,'Basic cause '+(i+1),bcOpts())).join('')}</div>
       <label class="f" for="ir_root_cause">Identified root cause<textarea id="ir_root_cause" data-k="root_cause" rows="3">${esc(r.root_cause||'')}</textarea></label>
       </fieldset>
-      ${canEdit?`<div class="row"><button class="btn" type="button" id="irSave">${isNew?'Save IR':'Save changes'}</button>${!isNew&&!irDone(r0)?'<span class="small muted">Set "Investigation completed?" to Yes and add the completion date to close this IR.</span>':''}</div>`:''}</form>`;
+      ${canEdit?`<div class="row"><button class="btn" type="button" id="irSave">${isNew?'Save IR':'Save changes'}</button>${!isNew&&!irDone(r0)?'<span class="small muted">Set "Investigation completed?" to Yes and add the completion date to close this IR.</span>':''}
+        ${!isNew&&isAdmin()?`<span style="margin-left:auto" class="row"><select id="irWhy1" aria-label="Reason for removal"><option>Duplicate IR</option><option>Incomplete / wrong entry</option><option>Other</option></select><button class="btn warn" type="button" id="irRm">Remove IR</button></span>`:''}</div>`:''}</form>`;
     md.querySelectorAll('[data-k]').forEach(el=>el.onchange=()=>{ const k=el.dataset.k; r[k]=el.value===''?null:el.value;
       fillUp(k);
       const keep=(x,list)=>{ if(r[x]&&!list.includes(r[x])) r[x]=null; };
@@ -1500,6 +1519,8 @@ function irEdit(r0){
       md.remove(); toast(isNew?'IR saved.':'IR updated.'); irList(); };
     md.querySelector('form').onsubmit=e=>{ e.preventDefault(); save(); };
     const sv=md.querySelector('#irSave'); if(sv) sv.onclick=save;
+    const rm=md.querySelector('#irRm'); if(rm) rm.onclick=async()=>{ if(!confirmInline(rm,'Click again to remove')) return;
+      if(await irRemove([r0],md.querySelector('#irWhy1').value)){ md.remove(); toast('IR removed. A copy is kept in the removal log.'); irList(); } };
   };
   document.body.appendChild(md); draw();
 }
