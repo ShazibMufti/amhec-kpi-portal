@@ -183,6 +183,16 @@ form.todayMode .dg > .dc:not(.tdc), form.todayMode .dg.dh > .dbtn:not(.td){displ
 form.todayMode .dg .tdc input{font-size:17px;padding:9px 8px}
 a.btn{text-decoration:none;display:inline-flex;align-items:center}
 .evf{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:#f8fafc}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.irf fieldset{border:0;padding:0;margin:0;display:grid;gap:12px;min-width:0}
+.irf h3{margin:8px 0 0;font-size:14px;color:var(--brand);border-bottom:1px solid var(--line);padding-bottom:6px}
+table.irt tbody tr{cursor:pointer} table.irt tbody tr:hover{background:#f8fafc} table.irt tr.late td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+.small.bad{color:var(--bad);font-weight:600}
+.hb{flex:1;height:10px;background:var(--sunk,#eef2f7);border-radius:6px;overflow:hidden;min-width:60px} .hb span{display:block;height:100%;border-radius:6px}
+.hbr{display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 34px;gap:8px;align-items:center;margin:6px 0} .hbr>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mchart{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;align-items:end;height:170px} .mc{display:grid;justify-items:center;gap:2px;height:100%;grid-template-rows:1fr auto auto}
+.mc .bars{display:flex;gap:2px;align-items:flex-end;height:100%;width:100%;justify-content:center} .mc .bars span{width:42%;border-radius:4px 4px 0 0;min-height:1px}
+.lg{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px}
 .rfl{margin:6px 0 0;padding-left:18px;max-height:180px;overflow:auto;line-height:1.7}
 .evf .x{height:28px;width:28px}
 label.attach{display:inline-flex;align-items:center;gap:6px;width:max-content;cursor:pointer}
@@ -313,10 +323,11 @@ async function startApp(session){
 const isMgr = () => S.me && (S.me.role==='supervisor'||S.me.role==='admin');
 const isAdmin = () => S.me && S.me.role==='admin';
 
-const TITLES={my:'My KPOs',mydash:'My Dashboard',myplan:'My plan',approvals:'Approvals',dashboard:'Dashboard',plan:'Weekly plan',plans:'Team plans',setup:'Setup'};
+const TITLES={my:'My KPOs',mydash:'My Dashboard',myplan:'My plan',approvals:'Approvals',dashboard:'Dashboard',plan:'Weekly plan',plans:'Team plans',ir:'Investigations',setup:'Setup'};
 function shell(){
   const tabs=[['my','My KPOs'],...(isMgr()?[]:[['mydash','My Dashboard']]),['myplan','My plan']];
   if(isMgr()) tabs.push(['approvals','Approvals'],['dashboard','Dashboard'],['plan','Weekly plan'],['plans','Team plans']);
+  tabs.push(['ir','Investigations']);
   if(isAdmin()) tabs.push(['setup','Setup']);
   const ini=(S.me.full_name||'?').split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
   $('#root').innerHTML = `<div class="app">
@@ -353,10 +364,10 @@ function go(k){ S.tab=k; try{ if(location.hash!=='#'+k) history.pushState(null,'
 document.addEventListener('click',e=>{ const a=e.target.closest('a[href^="#"]'); if(!a||!S.me) return; const k=a.getAttribute('href').slice(1); if(!TITLES[k]) return; e.preventDefault(); go(k); });
 function route(){
   let t=S.tab||(location.hash||'#my').slice(1).split('/')[0];
-  const allowed=['my','myplan']; if(!isMgr()) allowed.push('mydash'); if(isMgr()) allowed.push('approvals','dashboard','plan','plans'); if(isAdmin()) allowed.push('setup');
+  const allowed=['my','myplan','ir']; if(!isMgr()) allowed.push('mydash'); if(isMgr()) allowed.push('approvals','dashboard','plan','plans'); if(isAdmin()) allowed.push('setup');
   if(!allowed.includes(t)) t='my';
   document.querySelectorAll('.side nav a').forEach(a=>a.classList.toggle('on',a.dataset.t===t)); 
-  ({my:viewMy, mydash:viewMyDash, myplan:viewMyPlan, approvals:viewApprovals, dashboard:viewDashboard, plan:viewPlan, plans:viewPlans, setup:viewSetup})[t]();
+  ({my:viewMy, mydash:viewMyDash, myplan:viewMyPlan, approvals:viewApprovals, dashboard:viewDashboard, plan:viewPlan, plans:viewPlans, ir:viewIR, setup:viewSetup})[t]();
 }
 window.addEventListener('hashchange',()=>{ S.tab=null; if(S.me) route(); });
 window.addEventListener('popstate',()=>{ S.tab=null; if(S.me) route(); });
@@ -1327,6 +1338,213 @@ async function setupRules(){
     $('#rApply').onclick=openRefreshAll;
   };
   await draw();
+}
+
+// ---------- Investigations (IR progress monitoring) ----------
+const IRF = [ // key, Excel header (same order as the Master File)
+ ['aisf','AISF#'],['ir_no','IR Number'],['assigned_to','Assigned To'],['date_assigned','Date Assigned'],['description','Incident Description'],
+ ['who_involved','Who was involved'],['category','Category'],['classification','Classification'],['severity','Severity'],['hipo','Hipotential (HiPO)'],
+ ['loss_days','Loss Days'],['npt_hours','NPT Hours'],['equip_group','Equipment Involved'],['equip_type','Subcategory / Equipment Type'],
+ ['equip_component','Component / Third Category'],['client','Client'],['site','Site'],['inv_status','Investigation Yes?'],
+ ['closed_by','If Yes, Investigation Closed By'],['scat','SCAT'],['completion_date','Completion Date'],['final_report_date','Final Report Date'],
+ ['closure_note','Closure remarks'],['tcnc1','Type of Contact / Near Contact 1'],['tcnc2','Type of Contact / Near Contact 2'],
+ ['ic1','Immediate / Direct Cause (IC) 1'],['ic2','Immediate / Direct Cause (IC) 2'],['ic3','Immediate / Direct Cause (IC) 3'],
+ ['bc1','Basic / Underlying Cause (BC) 1'],['bc2','Basic / Underlying Cause (BC) 2'],['bc3','Basic / Underlying Cause (BC) 3'],
+ ['bc4','Basic / Underlying Cause (BC) 4'],['bc5','Basic / Underlying Cause (BC) 5'],['root_cause','Identified Root Cause']];
+const IR = { tab:'list', q:'', st:'', yr:'', who:'', rows:null, year:String(new Date().getFullYear()), per:'year' };
+const irL = () => S.lists.ir_lists || {};
+const irDone = r => (r.inv_status||'')==='Yes';
+const irStatus = r => irDone(r) ? '<span class="pill s-approved">Completed</span>' : '<span class="pill s-submitted">In progress</span>';
+const irAge = r => isoD(r.date_assigned) ? Math.round((Date.now()-parse(r.date_assigned))/864e5) : null;
+const isoD = d => typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
+const irDays = r => (isoD(r.date_assigned)&&isoD(r.completion_date)) ? Math.max(0,Math.round((parse(r.completion_date)-parse(r.date_assigned))/864e5)) : null;
+const fmtD = d => { if(!d) return ''; if(!isoD(d)) return esc(d); const x=parse(d); return `${x.getDate()} ${MON[x.getMonth()]} ${x.getFullYear()}`; };
+async function irFetch(){
+  let all=[], from=0;
+  for(;;){ let q=sb.from('investigations').select('*').order('date_assigned',{ascending:false}).range(from,from+999);
+    if(!isMgr()) q=q.eq('officer_id',S.me.id);
+    const {data,error}=await q; if(error) throw error; all=all.concat(data||[]); if(!data||data.length<1000) break; from+=1000; }
+  if(S.me.role==='supervisor'){ const mine=new Set([S.me.id,...S.team.map(p=>p.id)]); all=all.filter(r=>mine.has(r.officer_id)); }
+  return all;
+}
+async function viewIR(){
+  const m=$('#main');
+  const tabs=[['list',isMgr()?'All IR reports':'My IR reports']]; if(isMgr()) tabs.push(['dash','Dashboard']); if(isAdmin()) tabs.push(['clean','Download & clean-up']);
+  if(!tabs.some(t=>t[0]===IR.tab)) IR.tab='list';
+  m.innerHTML=`<h1>Investigations</h1><p class="lead">${isMgr()?'Investigation progress of every officer in one master list. Filter, open any IR, download the master file to Excel, and follow progress on the dashboard.':'Your IR investigation reports. Add a new IR with <b>+ New IR</b>, and open an IR in progress to update it until closure.'}</p>
+   <div class="chips" style="margin-bottom:16px">${tabs.map(([k,t])=>`<button class="chip ${IR.tab===k?'on':''}" data-irt="${k}">${t}</button>`).join('')}</div><div id="irBody" class="empty">Loading IR reports…</div>`;
+  m.querySelectorAll('[data-irt]').forEach(b=>b.onclick=()=>{IR.tab=b.dataset.irt; viewIR();});
+  try{ if(!IR.rows) IR.rows=await irFetch(); ({list:irList,dash:irDash,clean:irClean})[IR.tab](); }catch(x){ err(x); }
+}
+function irFilter(rows){ const q=IR.q.toLowerCase();
+  return rows.filter(r=>(!IR.st||(IR.st==='done'?irDone(r):!irDone(r)))&&(!IR.yr||(r.date_assigned||'').startsWith(IR.yr))&&(!IR.who||r.officer_id===IR.who)
+    &&(!q||[r.aisf,r.ir_no,r.description,r.classification,r.equip_type,r.client,r.site,r.assigned_to].join(' ').toLowerCase().includes(q))); }
+function irList(){
+  const b=$('#irBody'); b.className='stack'; const rows=IR.rows;
+  const yrs=[...new Set(rows.map(r=>(r.date_assigned||'').slice(0,4)).filter(Boolean))].sort().reverse();
+  const people=[...new Map(rows.map(r=>[r.officer_id,r.assigned_to])).entries()].filter(p=>p[0]).sort((a,b)=>String(a[1]).localeCompare(b[1]));
+  const f=irFilter(rows), open=f.filter(r=>!irDone(r)), late=open.filter(r=>irAge(r)>30);
+  const show=[...open,...f.filter(irDone)];
+  let lim=100;
+  b.innerHTML=`<div class="tiles">
+      <div class="tile"><span class="k">IR reports</span><span class="v">${f.length}</span><span class="s">${IR.yr||'All years'}</span></div>
+      <div class="tile" style="border-left-color:var(--good)"><span class="k">Completed</span><span class="v" style="color:var(--good)">${f.length-open.length}</span><span class="s">${f.length?Math.round((f.length-open.length)/f.length*100):0}% completed</span></div>
+      <div class="tile" style="border-left-color:var(--amber)"><span class="k">In progress</span><span class="v" style="color:var(--warn)">${open.length}</span><span class="s">Still open</span></div>
+      <div class="tile" style="border-left-color:var(--bad)"><span class="k">Open over 30 days</span><span class="v" style="color:var(--bad)">${late.length}</span><span class="s">Need follow-up</span></div></div>
+    <div class="panel stack">
+      <div class="row" style="gap:10px;align-items:flex-end">
+        <label class="f" for="irQ" style="flex:1;min-width:220px">Search<input id="irQ" type="search" value="${esc(IR.q)}" placeholder="AISF#, IR number, equipment, client, site…"></label>
+        <label class="f" for="irY" style="width:120px">Year<select id="irY"><option value="">All</option>${yrs.map(y=>`<option ${IR.yr===y?'selected':''}>${y}</option>`).join('')}</select></label>
+        <label class="f" for="irS" style="width:150px">Status<select id="irS"><option value="">All</option><option value="open" ${IR.st==='open'?'selected':''}>In progress</option><option value="done" ${IR.st==='done'?'selected':''}>Completed</option></select></label>
+        ${isMgr()?`<label class="f" for="irW" style="width:220px">Officer<select id="irW"><option value="">Everyone</option>${people.map(([id,n])=>`<option value="${id}" ${IR.who===id?'selected':''}>${esc(n)}</option>`).join('')}</select></label>`:''}
+        <button class="btn" id="irNew">+ New IR</button>
+        ${isMgr()?'<button class="btn line" id="irXls">Download Excel</button>':''}
+      </div>
+      <div class="scroll"><table class="irt"><thead><tr><th>AISF#</th><th>IR No.</th>${isMgr()?'<th>Officer</th>':''}<th>Date assigned</th><th>Classification</th><th>Equipment</th><th>Site / client</th><th>Status</th><th>Completed</th><th></th></tr></thead><tbody id="irRows"></tbody></table></div>
+      <div id="irMore"></div></div>`;
+  const draw=()=>{ $('#irRows').innerHTML=show.slice(0,lim).map(r=>{ const a=irAge(r);
+      return `<tr data-ir="${esc(r.id)}" class="${!irDone(r)&&a>30?'late':''}"><td><b>${esc(r.aisf||'')}</b></td><td class="small">${esc(r.ir_no||'')}</td>${isMgr()?`<td class="small">${esc(r.assigned_to||'')}</td>`:''}
+        <td class="small" style="white-space:nowrap">${fmtD(r.date_assigned)}</td><td><div class="small muted">${esc(r.category||'')}</div>${esc(r.classification||'')}${r.hipo==='Yes'?' <span class="pill s-returned">HiPO</span>':''}</td>
+        <td class="small">${esc(r.equip_type||r.equip_group||'')}</td><td class="small">${esc([r.site,r.client&&r.client!=='N/A'?r.client:''].filter(Boolean).join(' · '))}</td>
+        <td>${irStatus(r)}${!irDone(r)&&a!=null?`<div class="small ${a>30?'bad':'muted'}">${a} days open</div>`:''}</td><td class="small" style="white-space:nowrap">${fmtD(r.completion_date)}</td>
+        <td><button class="btn line sm">${irDone(r)?'View':'Update'}</button></td></tr>`; }).join('')||`<tr><td colspan="10" class="muted">No IR reports match.</td></tr>`;
+    $('#irMore').innerHTML=show.length>lim?`<button class="btn line" id="irM">Show more (${show.length-lim} more)</button>`:'';
+    $('#irM')&&($('#irM').onclick=()=>{lim+=200; draw();});
+    b.querySelectorAll('[data-ir]').forEach(tr=>tr.onclick=()=>irEdit(IR.rows.find(r=>String(r.id)===tr.dataset.ir))); };
+  draw();
+  let t; $('#irQ').oninput=e=>{ clearTimeout(t); t=setTimeout(()=>{IR.q=e.target.value; irList(); const el=$('#irQ'); el.focus(); el.setSelectionRange(99,99);},300); };
+  $('#irY').onchange=e=>{IR.yr=e.target.value; irList();}; $('#irS').onchange=e=>{IR.st=e.target.value; irList();};
+  $('#irW')&&($('#irW').onchange=e=>{IR.who=e.target.value; irList();});
+  $('#irNew').onclick=()=>irEdit(null);
+  $('#irXls')&&($('#irXls').onclick=()=>irExcel(f,'AMHEC_IR_Master'+(IR.yr?'_'+IR.yr:'')));
+}
+function irExcel(rows,name){
+  try{ const out=rows.map((r,i)=>Object.fromEntries([['#',i+1],...IRF.map(([k,h])=>[h, ['date_assigned','completion_date','final_report_date'].includes(k)&&r[k]?parse(r[k]):(r[k]??'')])]));
+    const ws=XLSX.utils.json_to_sheet(out,{cellDates:true}); ws['!cols']=[5,10,12,22,12,50,18,12,22,10,8,8,8,22,22,22,22,18,12,16,6,12,12,20,28,28,28,28,28,28,28,28,28,28,40].map(w=>({wch:w}));
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Data');
+    const by={}; rows.forEach(r=>{ const n=r.assigned_to||'Unassigned'; (by[n]=by[n]||{n,t:0,c:0}).t++; if(irDone(r)) by[n].c++; });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(Object.values(by).sort((a,b)=>b.t-a.t).map(x=>({'Employee Name':x.n,'Total Assigned':x.t,'Completed':x.c,'Pending':x.t-x.c,'Completion %':x.t?Math.round(x.c/x.t*100)+'%':''}))),'By officer');
+    XLSX.writeFile(wb,name+'.xlsx'); return true; }catch(x){ err(x); return false; }
+}
+function irEdit(r0){
+  const L=irL(), isNew=!r0, mine=!r0||r0.officer_id===S.me.id, canEdit=isMgr()||mine;
+  const r=Object.assign({assigned_to:S.me.full_name,officer_id:S.me.id,date_assigned:ymd(new Date()),inv_status:'In Progress'}, r0||{});
+  const opt=(list,v,ph='Choose')=>`<option value="">${ph}</option>`+[...new Set([...(list||[]),...(v&&!(list||[]).includes(v)?[v]:[])])].map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join('');
+  const people=[S.me,...S.team].filter(p=>p.active!==false).sort((a,b)=>a.full_name.localeCompare(b.full_name));
+  const md=document.createElement('div'); md.className='modal';
+  const sel=(k,label,list,extra='')=>`<label class="f" for="ir_${k}">${label}<select id="ir_${k}" data-k="${k}" ${extra}>${opt(list,r[k])}</select></label>`;
+  const inp=(k,label,type='text',extra='')=>`<label class="f" for="ir_${k}">${label}<input id="ir_${k}" data-k="${k}" type="${type}" value="${esc(r[k]??'')}" ${extra}></label>`;
+  const icOpts=()=>[...new Set([r.tcnc1,r.tcnc2].filter(Boolean).flatMap(t=>(L.tcnc||{})[t]||[]))];
+  const bcOpts=()=>[...new Set([r.ic1,r.ic2,r.ic3].filter(Boolean).flatMap(i=>(L.ic_bc||{})[i]||[]))];
+  const draw=()=>{ const eqT=Object.keys((L.equipment||{})[r.equip_group]||{}), eqC=((L.equipment||{})[r.equip_group]||{})[r.equip_type]||[];
+    md.innerHTML=`<form class="panel stack irf" role="dialog" aria-modal="true" aria-label="IR report" style="max-width:980px">
+      <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${isNew?'New IR report':'IR '+esc(r.aisf||'')}</h2><div class="muted small">${esc(r.assigned_to||'')}${r0?' · '+(irDone(r0)?'Completed':'In progress'):''}</div></div><button class="btn line sm" id="irX" type="button">Close</button></div>
+      <fieldset ${canEdit?'':'disabled'}>
+      <h3>1. IR details</h3><div class="grid4">
+        ${inp('aisf','AISF# *','text','required')}${inp('ir_no','IR Number')}
+        ${isMgr()?`<label class="f" for="ir_officer">Assigned to<select id="ir_officer">${people.map(p=>`<option value="${p.id}" ${p.id===r.officer_id?'selected':''}>${esc(p.full_name)}</option>`).join('')}</select></label>`:`<label class="f">Assigned to<input value="${esc(r.assigned_to)}" disabled></label>`}
+        ${inp('date_assigned','Date assigned *','date','required')}</div>
+      <label class="f" for="ir_description">Incident description<textarea id="ir_description" data-k="description" rows="3">${esc(r.description||'')}</textarea></label>
+      <div class="grid4">${inp('who_involved','Who was involved')}
+        ${sel('category','Category',Object.keys(L.categories||{}))}${sel('classification','Classification',(L.categories||{})[r.category]||[])}${sel('severity','Severity',L.severity)}
+        ${sel('hipo','High potential (HiPO)',L.yesno)}${inp('loss_days','Loss days','number','min="0" step="1"')}${inp('npt_hours','NPT hours','number','min="0" step="any"')}</div>
+      <h3>2. Equipment & location</h3><div class="grid4">
+        ${sel('equip_group','Equipment involved',Object.keys(L.equipment||{}))}${sel('equip_type','Equipment type',eqT,eqT.length?'':'disabled')}${sel('equip_component','Component',eqC,eqC.length?'':'disabled')}
+        <label class="f" for="ir_client">Client<input id="ir_client" data-k="client" type="text" list="irCl" value="${esc(r.client||'')}" placeholder="Type or pick"></label>
+        <label class="f" for="ir_site">Site<input id="ir_site" data-k="site" type="text" list="irSi" value="${esc(r.site||'')}" placeholder="Type or pick"></label></div>
+      <datalist id="irCl">${(L.clients||[]).map(c=>`<option value="${esc(c)}">`).join('')}</datalist><datalist id="irSi">${(S.lists.sites||[]).map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+      <h3>3. Investigation progress</h3><div class="grid4">
+        <label class="f" for="ir_inv_status">Investigation completed?<select id="ir_inv_status" data-k="inv_status"><option value="In Progress" ${!irDone(r)?'selected':''}>In progress</option><option value="Yes" ${irDone(r)?'selected':''}>Yes, completed</option></select></label>
+        ${sel('closed_by','Closed by',L.closed_by)}${sel('scat','SCAT done?',L.yesno)}${inp('completion_date','Completion date','date')}${inp('final_report_date','Final report date','date')}
+        ${inp('closure_note','Closure remarks','text','placeholder="e.g. Duplicate IR, handed over to HR"')}</div>
+      <h3>4. SCAT – causes</h3><p class="small muted" style="margin:-4px 0 4px">Pick the type of contact first; the immediate causes list follows it, and the basic causes list follows the immediate causes. Same rule as the Master File.</p>
+      <div class="grid3">${sel('tcnc1','Type of contact 1',Object.keys(L.tcnc||{}))}${sel('tcnc2','Type of contact 2',Object.keys(L.tcnc||{}))}</div>
+      <div class="grid3">${['ic1','ic2','ic3'].map((k,i)=>sel(k,'Immediate cause '+(i+1),icOpts(),icOpts().length?'':'disabled')).join('')}</div>
+      <div class="grid3">${['bc1','bc2','bc3','bc4','bc5'].map((k,i)=>sel(k,'Basic cause '+(i+1),bcOpts(),bcOpts().length?'':'disabled')).join('')}</div>
+      <label class="f" for="ir_root_cause">Identified root cause<textarea id="ir_root_cause" data-k="root_cause" rows="3">${esc(r.root_cause||'')}</textarea></label>
+      </fieldset>
+      ${canEdit?`<div class="row"><button class="btn" type="submit">${isNew?'Save IR':'Save changes'}</button>${!isNew&&!irDone(r0)?'<span class="small muted">Set "Investigation completed?" to Yes and add the completion date to close this IR.</span>':''}</div>`:''}</form>`;
+    md.querySelectorAll('[data-k]').forEach(el=>el.onchange=()=>{ const k=el.dataset.k; r[k]=el.value===''?null:el.value;
+      const reset={category:['classification'],equip_group:['equip_type','equip_component'],equip_type:['equip_component'],tcnc1:[],tcnc2:[],ic1:[],ic2:[],ic3:[]}[k];
+      if(reset){ reset.forEach(x=>r[x]=null);
+        if(k.startsWith('tcnc')){ const ok=icOpts(); ['ic1','ic2','ic3'].forEach(x=>{ if(r[x]&&!ok.includes(r[x])) r[x]=null; }); }
+        if(k.startsWith('tcnc')||k.startsWith('ic')){ const ok=bcOpts(); ['bc1','bc2','bc3','bc4','bc5'].forEach(x=>{ if(r[x]&&!ok.includes(r[x])) r[x]=null; }); }
+        const y=md.scrollTop; draw(); md.scrollTop=y; }
+      if(k==='inv_status'&&el.value==='Yes'&&!r.completion_date){ r.completion_date=ymd(new Date()); const c=md.querySelector('#ir_completion_date'); if(c) c.value=r.completion_date; } });
+    md.querySelector('#irX').onclick=()=>md.remove();
+    md.querySelector('form').onsubmit=async e=>{ e.preventDefault();
+      md.querySelectorAll('input[data-k],textarea[data-k]').forEach(el=>r[el.dataset.k]=el.value.trim()===''?null:el.value.trim());
+      const o=md.querySelector('#ir_officer'); if(o){ r.officer_id=o.value; r.assigned_to=people.find(p=>p.id===o.value)?.full_name; }
+      if(r.inv_status==='Yes'&&!r.completion_date) return toast('Add the completion date to close this IR.');
+      if(IR.rows.some(x=>x.aisf===r.aisf&&x.id!==r.id)) return toast('This AISF# already exists.');
+      const rec=Object.fromEntries(['officer_id',...IRF.map(f=>f[0])].map(k=>[k,r[k]??null]));
+      ['loss_days','npt_hours'].forEach(k=>rec[k]=rec[k]==null?null:Number(rec[k]));
+      const q=isNew?sb.from('investigations').insert(rec).select().maybeSingle():sb.from('investigations').update(rec).eq('id',r.id).select().maybeSingle();
+      const {data,error}=await q; if(error) return err(error);
+      const saved=Object.assign({},r,data||{}); if(isNew){ saved.id=saved.id||('n'+Date.now()); IR.rows.unshift(saved); } else IR.rows[IR.rows.findIndex(x=>x.id===r.id)]=saved;
+      md.remove(); toast(isNew?'IR saved.':'IR updated.'); irList(); };
+  };
+  document.body.appendChild(md); draw();
+}
+function irDash(){
+  const b=$('#irBody'); b.className='stack'; const all=IR.rows;
+  const yrs=[...new Set(all.map(r=>(r.date_assigned||'').slice(0,4)).filter(Boolean))].sort().reverse();
+  if(!yrs.includes(IR.year)) IR.year=yrs[0]||IR.year;
+  const pers=[['year','Whole year'],['q1','Q1 (Jan–Mar)'],['q2','Q2 (Apr–Jun)'],['q3','Q3 (Jul–Sep)'],['q4','Q4 (Oct–Dec)'],...MON.map((m,i)=>['m'+(i+1),m])];
+  const inP=r=>{ const d=r.date_assigned; if(!d||!d.startsWith(IR.year)) return false; const mo=+d.slice(5,7);
+    if(IR.per==='year') return true; if(IR.per[0]==='q') return Math.ceil(mo/3)===+IR.per[1]; return mo===+IR.per.slice(1); };
+  const rows=all.filter(inP), done=rows.filter(irDone), days=done.map(irDays).filter(v=>v!=null);
+  const by={}; rows.forEach(r=>{ const k=r.officer_id||r.assigned_to; const o=by[k]=by[k]||{id:r.officer_id,n:r.assigned_to||'Unassigned',t:0,c:0,full:0,hipo:0,hi:0,d:[],late:0};
+    o.t++; if(irDone(r)){ o.c++; const d=irDays(r); if(d!=null) o.d.push(d); } else if(irAge(r)>30) o.late++;
+    if(r.closed_by==='Full Investigation') o.full++; if(r.hipo==='Yes') o.hipo++; if(r.severity==='High') o.hi++; });
+  const list=Object.values(by).sort((a,b)=>b.t-a.t), avg=a=>a.length?Math.round(a.reduce((s,x)=>s+x,0)/a.length):null;
+  const pc=(c,t)=>t?Math.round(c/t*100):0, bar=(v,max,col)=>`<div class="hb"><span style="width:${max?Math.max(2,v/max*100):0}%;background:${col}"></span></div>`;
+  const top=(keys)=>{ const c={}; rows.forEach(r=>keys.forEach(k=>{ if(r[k]) c[r[k]]=(c[r[k]]||0)+1; })); return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,8); };
+  const box=(title,items,col)=>{ const mx=items[0]?.[1]||0; return `<div class="panel"><h3 style="margin-top:0">${title}</h3>${items.length?items.map(([k,v])=>`<div class="hbr"><span class="small" title="${esc(k)}">${esc(k)}</span>${bar(v,mx,col)}<b class="small">${v}</b></div>`).join(''):'<p class="muted small">No data in this period.</p>'}</div>`; };
+  const mon=MON.map((m,i)=>{ const x=all.filter(r=>(r.date_assigned||'').startsWith(IR.year+'-'+String(i+1).padStart(2,'0'))); return [m,x.length,x.filter(irDone).length]; });
+  const mx=Math.max(1,...mon.map(m=>m[1]));
+  b.innerHTML=`<div class="panel row" style="gap:10px;align-items:flex-end">
+      <label class="f" for="dY" style="width:110px">Year<select id="dY">${yrs.map(y=>`<option ${y===IR.year?'selected':''}>${y}</option>`).join('')}</select></label>
+      <div class="chips">${pers.map(([k,t])=>`<button class="chip ${IR.per===k?'on':''}" data-per="${k}">${t}</button>`).join('')}</div></div>
+    <div class="tiles">
+      <div class="tile"><span class="k">IR assigned</span><span class="v">${rows.length}</span><span class="s">${esc(pers.find(p=>p[0]===IR.per)[1])} ${IR.year}</span></div>
+      <div class="tile" style="border-left-color:var(--good)"><span class="k">Completed</span><span class="v" style="color:var(--good)">${done.length}</span><span class="s">${pc(done.length,rows.length)}% completion</span></div>
+      <div class="tile" style="border-left-color:var(--amber)"><span class="k">In progress</span><span class="v" style="color:var(--warn)">${rows.length-done.length}</span><span class="s">${rows.filter(r=>!irDone(r)&&irAge(r)>30).length} open over 30 days</span></div>
+      <div class="tile"><span class="k">Average days to complete</span><span class="v">${avg(days)??'–'}</span><span class="s">Date assigned to completion</span></div>
+      <div class="tile" style="border-left-color:var(--bad)"><span class="k">HiPO / High severity</span><span class="v">${rows.filter(r=>r.hipo==='Yes').length} / ${rows.filter(r=>r.severity==='High').length}</span><span class="s">${rows.filter(r=>r.closed_by==='Full Investigation').length} full investigations</span></div></div>
+    <div class="panel"><h2 style="margin-top:0">Progress by person</h2><div class="scroll"><table><thead><tr><th>Officer</th><th class="n">Assigned</th><th class="n">Completed</th><th class="n">In progress</th><th style="min-width:180px">Completion</th><th class="n">Avg days</th><th class="n">Open &gt;30 days</th><th class="n">Full inv.</th><th class="n">HiPO</th></tr></thead><tbody>
+      ${list.map(o=>{ const p=pc(o.c,o.t), col=p>=90?'var(--good)':p>=70?'var(--amber)':'var(--bad)';
+        return `<tr data-who="${esc(o.id||'')}" style="cursor:pointer"><td><b>${esc(o.n)}</b></td><td class="n">${o.t}</td><td class="n">${o.c}</td><td class="n">${o.t-o.c}</td>
+        <td><div class="row" style="gap:8px;flex-wrap:nowrap">${bar(p,100,col)}<b class="small" style="width:38px">${p}%</b></div></td><td class="n">${avg(o.d)??'–'}</td><td class="n" style="${o.late?'color:var(--bad);font-weight:700':''}">${o.late}</td><td class="n">${o.full}</td><td class="n">${o.hipo}</td></tr>`; }).join('')||'<tr><td colspan="9" class="muted">No IR reports in this period.</td></tr>'}</tbody></table></div>
+      <p class="small muted" style="margin:8px 0 0">Click a person to open their IR list.</p></div>
+    <div class="panel"><h2 style="margin-top:0">Month by month, ${IR.year}</h2><div class="mchart">${mon.map(([m,t,c])=>`<div class="mc" title="${m}: ${t} assigned, ${c} completed"><div class="bars"><span style="height:${t/mx*100}%;background:#c7d2fe"></span><span style="height:${c/mx*100}%;background:var(--good)"></span></div><b class="small">${t||''}</b><span class="small muted">${m}</span></div>`).join('')}</div>
+      <div class="row small muted" style="gap:14px;margin-top:6px"><span><i class="lg" style="background:#c7d2fe"></i> Assigned</span><span><i class="lg" style="background:var(--good)"></i> Completed</span></div></div>
+    <div class="grid3">${box('Top classifications',top(['classification']),'var(--brand2)')}${box('Top type of contact (SCAT)',top(['tcnc1','tcnc2']),'#0e7490')}</div>
+    <div class="grid3">${box('Top immediate causes',top(['ic1','ic2','ic3']),'#b45309')}${box('Top basic causes',top(['bc1','bc2','bc3','bc4','bc5']),'#7c3aed')}</div>
+    <div class="row"><button class="btn line" id="dX">Download this period to Excel</button></div>`;
+  $('#dY').onchange=e=>{IR.year=e.target.value; irDash();};
+  b.querySelectorAll('[data-per]').forEach(c=>c.onclick=()=>{IR.per=c.dataset.per; irDash();});
+  b.querySelectorAll('[data-who]').forEach(tr=>tr.onclick=()=>{ IR.who=tr.dataset.who; IR.yr=IR.year; IR.tab='list'; viewIR(); });
+  $('#dX').onclick=()=>irExcel(rows,`AMHEC_IR_${IR.year}_${IR.per}`);
+}
+function irClean(){
+  const b=$('#irBody'); b.className='stack'; let got=false;
+  const y=String(new Date().getFullYear()-2);
+  b.innerHTML=`<div class="note">Download a date range to Excel for your records, then remove it from the portal to keep the database light. The portal holds about 500 MB; IR data uses roughly 3 KB per report, so ${IR.rows.length} reports take about ${Math.max(1,Math.round(IR.rows.length*3/1024))} MB. Only admins can remove data.</div>
+    <div class="panel stack"><div class="grid4">
+      <label class="f" for="cF">From (date assigned)<input id="cF" type="date" value="${y}-01-01"></label>
+      <label class="f" for="cT">To (date assigned)<input id="cT" type="date" value="${y}-12-31"></label>
+      <label class="f" for="cS">Which IRs<select id="cS"><option value="done">Completed only</option><option value="all">All, including in progress</option></select></label></div>
+      <div id="cN" class="note"></div>
+      <div class="row"><button class="btn" id="cD">1. Download to Excel</button><button class="btn warn" id="cR" disabled>2. Remove from portal</button></div>
+      <p class="small muted" style="margin:0">Step 2 opens only after the download in step 1. Removed IRs cannot be brought back except from the Excel file.</p></div>`;
+  const pick=()=>{ const f=$('#cF').value, t=$('#cT').value, s=$('#cS').value; return IR.rows.filter(r=>r.date_assigned&&r.date_assigned>=f&&r.date_assigned<=t&&(s==='all'||irDone(r))); };
+  const upd=()=>{ const p=pick(); got=false; $('#cR').disabled=true; $('#cN').innerHTML=`<b>${p.length}</b> IR reports in this range${p.length?` · ${p.filter(irDone).length} completed, ${p.filter(r=>!irDone(r)).length} in progress`:''}.`; };
+  ['cF','cT','cS'].forEach(i=>$('#'+i).onchange=upd); upd();
+  $('#cD').onclick=()=>{ const p=pick(); if(!p.length) return toast('No IR reports in this range.'); if(irExcel(p,`AMHEC_IR_Archive_${$('#cF').value}_to_${$('#cT').value}`)){ got=true; $('#cR').disabled=false; } };
+  $('#cR').onclick=async()=>{ const p=pick(); if(!got||!p.length) return; if(!confirmInline($('#cR'),`Click again to remove ${p.length} IRs`)) return;
+    for(let i=0;i<p.length;i+=200){ const {error}=await sb.from('investigations').delete().in('id',p.slice(i,i+200).map(r=>r.id)); if(error) return err(error); }
+    const gone=new Set(p.map(r=>r.id)); IR.rows=IR.rows.filter(r=>!gone.has(r.id)); toast(`${p.length} IR reports removed. The Excel file is your archive.`); irClean(); };
 }
 
 // ---------- boot ----------
