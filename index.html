@@ -1364,7 +1364,10 @@ async function irFetch(){
   for(;;){ let q=sb.from('investigations').select('*').order('date_assigned',{ascending:false}).range(from,from+999);
     if(!isMgr()) q=q.eq('officer_id',S.me.id);
     const {data,error}=await q; if(error) throw error; all=all.concat(data||[]); if(!data||data.length<1000) break; from+=1000; }
-  if(S.me.role==='supervisor'){ const mine=new Set([S.me.id,...S.team.map(p=>p.id)]); all=all.filter(r=>mine.has(r.officer_id)); }
+  if(S.me.role==='supervisor'){ // own IRs + everyone reporting to me (directly or through my supervisors)
+    const mine=new Set([S.me.id]), em=new Set([(S.me.email||'').toLowerCase()]); let grew=true;
+    while(grew){ grew=false; S.team.forEach(p=>{ if(!mine.has(p.id)&&em.has((p.supervisor_email||'').toLowerCase())){ mine.add(p.id); em.add((p.email||'').toLowerCase()); grew=true; } }); }
+    all=all.filter(r=>mine.has(r.officer_id)); }
   return all;
 }
 async function viewIR(){
@@ -1434,9 +1437,16 @@ function irEdit(r0){
   const md=document.createElement('div'); md.className='modal';
   const sel=(k,label,list,extra='')=>`<label class="f" for="ir_${k}">${label}<select id="ir_${k}" data-k="${k}" ${extra}>${opt(list,r[k])}</select></label>`;
   const inp=(k,label,type='text',extra='')=>`<label class="f" for="ir_${k}">${label}<input id="ir_${k}" data-k="${k}" type="${type}" value="${esc(r[k]??'')}" ${extra}></label>`;
-  const icOpts=()=>[...new Set([r.tcnc1,r.tcnc2].filter(Boolean).flatMap(t=>(L.tcnc||{})[t]||[]))];
-  const bcOpts=()=>[...new Set([r.ic1,r.ic2,r.ic3].filter(Boolean).flatMap(i=>(L.ic_bc||{})[i]||[]))];
-  const draw=()=>{ const eqT=Object.keys((L.equipment||{})[r.equip_group]||{}), eqC=((L.equipment||{})[r.equip_group]||{})[r.equip_type]||[];
+  const uniq=a=>[...new Set(a)].sort((x,y)=>x.localeCompare(y));
+  const allCls=()=>uniq(Object.values(L.categories||{}).flat()), allTypes=()=>uniq(Object.values(L.equipment||{}).flatMap(g=>Object.keys(g)));
+  const allComp=()=>uniq(Object.values(L.equipment||{}).flatMap(g=>Object.values(g).flat()));
+  const icOpts=()=>{ const t=[r.tcnc1,r.tcnc2].filter(Boolean); return t.length?[...new Set(t.flatMap(x=>(L.tcnc||{})[x]||[]))]:uniq(Object.values(L.tcnc||{}).flat()); };
+  const bcOpts=()=>{ const i=[r.ic1,r.ic2,r.ic3].filter(Boolean); return i.length?[...new Set(i.flatMap(x=>(L.ic_bc||{})[x]||[]))]:uniq(Object.values(L.ic_bc||{}).flat()); };
+  const fillUp=k=>{ // picking a child first fills in its parent, like the Master File
+    if(k==='classification'&&r.classification&&!r.category) r.category=Object.keys(L.categories||{}).find(c=>(L.categories[c]||[]).includes(r.classification))||null;
+    if(k==='equip_type'&&r.equip_type&&!r.equip_group) r.equip_group=Object.keys(L.equipment||{}).find(g=>L.equipment[g][r.equip_type])||null;
+    if(k==='equip_component'&&r.equip_component&&!r.equip_type){ for(const g of Object.keys(L.equipment||{})){ const t=Object.keys(L.equipment[g]).find(t=>L.equipment[g][t].includes(r.equip_component)); if(t){ r.equip_group=r.equip_group||g; r.equip_type=t; break; } } } };
+  const draw=()=>{ const eqT=r.equip_group?Object.keys((L.equipment||{})[r.equip_group]||{}):allTypes(), eqC=r.equip_type?((((L.equipment||{})[r.equip_group]||{})[r.equip_type])||[]):allComp();
     md.innerHTML=`<form class="panel stack irf" role="dialog" aria-modal="true" aria-label="IR report" style="max-width:980px">
       <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${isNew?'New IR report':'IR '+esc(r.aisf||'')}</h2><div class="muted small">${esc(r.assigned_to||'')}${r0?' · '+(irDone(r0)?'Completed':'In progress'):''}</div></div><button class="btn line sm" id="irX" type="button">Close</button></div>
       <fieldset ${canEdit?'':'disabled'}>
@@ -1446,10 +1456,10 @@ function irEdit(r0){
         ${inp('date_assigned','Date assigned *','date','required')}</div>
       <label class="f" for="ir_description">Incident description<textarea id="ir_description" data-k="description" rows="3">${esc(r.description||'')}</textarea></label>
       <div class="grid4">${inp('who_involved','Who was involved')}
-        ${sel('category','Category',Object.keys(L.categories||{}))}${sel('classification','Classification',(L.categories||{})[r.category]||[])}${sel('severity','Severity',L.severity)}
+        ${sel('category','Category',Object.keys(L.categories||{}))}${sel('classification','Classification',r.category?((L.categories||{})[r.category]||[]):allCls())}${sel('severity','Severity',L.severity)}
         ${sel('hipo','High potential (HiPO)',L.yesno)}${inp('loss_days','Loss days','number','min="0" step="1"')}${inp('npt_hours','NPT hours','number','min="0" step="any"')}</div>
       <h3>2. Equipment & location</h3><div class="grid4">
-        ${sel('equip_group','Equipment involved',Object.keys(L.equipment||{}))}${sel('equip_type','Equipment type',eqT,eqT.length?'':'disabled')}${sel('equip_component','Component',eqC,eqC.length?'':'disabled')}
+        ${sel('equip_group','Equipment involved',Object.keys(L.equipment||{}))}${sel('equip_type','Equipment type',eqT)}${sel('equip_component','Component',eqC,eqC.length?'':'disabled title="No components listed for this equipment type"')}
         <label class="f" for="ir_client">Client<input id="ir_client" data-k="client" type="text" list="irCl" value="${esc(r.client||'')}" placeholder="Type or pick"></label>
         <label class="f" for="ir_site">Site<input id="ir_site" data-k="site" type="text" list="irSi" value="${esc(r.site||'')}" placeholder="Type or pick"></label></div>
       <datalist id="irCl">${(L.clients||[]).map(c=>`<option value="${esc(c)}">`).join('')}</datalist><datalist id="irSi">${(S.lists.sites||[]).map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
@@ -1457,16 +1467,20 @@ function irEdit(r0){
         <label class="f" for="ir_inv_status">Investigation completed?<select id="ir_inv_status" data-k="inv_status"><option value="In Progress" ${!irDone(r)?'selected':''}>In progress</option><option value="Yes" ${irDone(r)?'selected':''}>Yes, completed</option></select></label>
         ${sel('closed_by','Closed by',L.closed_by)}${sel('scat','SCAT done?',L.yesno)}${inp('completion_date','Completion date','date')}${inp('final_report_date','Final report date','date')}
         ${inp('closure_note','Closure remarks','text','placeholder="e.g. Duplicate IR, handed over to HR"')}</div>
-      <h3>4. SCAT – causes</h3><p class="small muted" style="margin:-4px 0 4px">Pick the type of contact first; the immediate causes list follows it, and the basic causes list follows the immediate causes. Same rule as the Master File.</p>
+      <h3>4. SCAT – causes</h3><p class="small muted" style="margin:-4px 0 4px">All lists are open. When you pick a type of contact, the immediate causes narrow to that contact; when you pick an immediate cause, the basic causes narrow to it. Same rule as the Master File.</p>
       <div class="grid3">${sel('tcnc1','Type of contact 1',Object.keys(L.tcnc||{}))}${sel('tcnc2','Type of contact 2',Object.keys(L.tcnc||{}))}</div>
-      <div class="grid3">${['ic1','ic2','ic3'].map((k,i)=>sel(k,'Immediate cause '+(i+1),icOpts(),icOpts().length?'':'disabled')).join('')}</div>
-      <div class="grid3">${['bc1','bc2','bc3','bc4','bc5'].map((k,i)=>sel(k,'Basic cause '+(i+1),bcOpts(),bcOpts().length?'':'disabled')).join('')}</div>
+      <div class="grid3">${['ic1','ic2','ic3'].map((k,i)=>sel(k,'Immediate cause '+(i+1),icOpts())).join('')}</div>
+      <div class="grid3">${['bc1','bc2','bc3','bc4','bc5'].map((k,i)=>sel(k,'Basic cause '+(i+1),bcOpts())).join('')}</div>
       <label class="f" for="ir_root_cause">Identified root cause<textarea id="ir_root_cause" data-k="root_cause" rows="3">${esc(r.root_cause||'')}</textarea></label>
       </fieldset>
       ${canEdit?`<div class="row"><button class="btn" type="submit">${isNew?'Save IR':'Save changes'}</button>${!isNew&&!irDone(r0)?'<span class="small muted">Set "Investigation completed?" to Yes and add the completion date to close this IR.</span>':''}</div>`:''}</form>`;
     md.querySelectorAll('[data-k]').forEach(el=>el.onchange=()=>{ const k=el.dataset.k; r[k]=el.value===''?null:el.value;
-      const reset={category:['classification'],equip_group:['equip_type','equip_component'],equip_type:['equip_component'],tcnc1:[],tcnc2:[],ic1:[],ic2:[],ic3:[]}[k];
-      if(reset){ reset.forEach(x=>r[x]=null);
+      fillUp(k);
+      const keep=(x,list)=>{ if(r[x]&&!list.includes(r[x])) r[x]=null; };
+      const reset={category:1,classification:1,equip_group:1,equip_type:1,equip_component:1,tcnc1:1,tcnc2:1,ic1:1,ic2:1,ic3:1}[k];
+      if(reset){ if(k==='category'&&r.category) keep('classification',(L.categories||{})[r.category]||[]);
+        if(k==='equip_group'){ const g=(L.equipment||{})[r.equip_group]; if(g){ keep('equip_type',Object.keys(g)); } if(!g||!r.equip_type) r.equip_component=null; else keep('equip_component',g[r.equip_type]||[]); }
+        if(k==='equip_type'&&r.equip_type) keep('equip_component',(((L.equipment||{})[r.equip_group]||{})[r.equip_type])||[]);
         if(k.startsWith('tcnc')){ const ok=icOpts(); ['ic1','ic2','ic3'].forEach(x=>{ if(r[x]&&!ok.includes(r[x])) r[x]=null; }); }
         if(k.startsWith('tcnc')||k.startsWith('ic')){ const ok=bcOpts(); ['bc1','bc2','bc3','bc4','bc5'].forEach(x=>{ if(r[x]&&!ok.includes(r[x])) r[x]=null; }); }
         const y=md.scrollTop; draw(); md.scrollTop=y; }
