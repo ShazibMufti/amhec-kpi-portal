@@ -189,6 +189,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center}
 table.irt tbody tr{cursor:pointer} table.irt tbody tr:hover{background:#f8fafc} table.irt tr.late td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
 .bulk{position:sticky;bottom:0;background:#fff7f7;border:1px solid var(--bad-bg);border-radius:10px;padding:10px 12px;gap:10px;align-items:flex-end}
 td.ck,th:has(#irAll){width:28px}
+table.cmt td{vertical-align:top}
 .small.bad{color:var(--bad);font-weight:600}
 .hb{flex:1;height:10px;background:var(--sunk,#eef2f7);border-radius:6px;overflow:hidden;min-width:60px} .hb span{display:block;height:100%;border-radius:6px}
 .hbr{display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 34px;gap:8px;align-items:center;margin:6px 0} .hbr>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -359,7 +360,7 @@ function changePassword(){
     const {error}=await sb.auth.updateUser({password:$('#np1').value}); if(error) return err(error); toast('Password changed.'); md.remove(); };
 }
 async function refreshPending(){
-  const {count}=await sb.from('week_submissions').select('id',{count:'exact',head:true}).eq('status','submitted').neq('officer_id',S.me.id);
+  let count=0; try{ const L=await approvalsList(); count=(isAdmin()&&AP.all?L.all:L.mine).length; }catch(_){}
   const el=$('#pc'); if(el){ el.hidden=!count; el.textContent=count||''; }
 }
 function go(k){ S.tab=k; try{ if(location.hash!=='#'+k) history.pushState(null,'','#'+k); }catch(_){} route(); window.scrollTo(0,0); }
@@ -683,16 +684,26 @@ async function viewMyDash(){
 }
 
 // ---------- Approvals ----------
+const directIds = () => new Set(S.team.filter(p=>(p.supervisor_email||'').toLowerCase()===(S.me.email||'').toLowerCase()).map(p=>p.id));
+const AP = { all:null };
+async function approvalsList(){ // supervisors and managers approve the people who report to them directly; admins can switch to everyone
+  const {data,error}=await sb.from('week_submissions').select('*, profiles(full_name,designation,employee_no,supervisor_email)').eq('status','submitted').neq('officer_id',S.me.id).order('week_start');
+  if(error) throw error; const d=directIds();
+  if(AP.all===null) AP.all=isAdmin()&&!d.size;
+  return { all:data, mine:data.filter(s=>d.has(s.officer_id)), direct:d };
+}
 async function viewApprovals(){
-  const m=$('#main'); m.innerHTML=`<h1>Approvals</h1><p class="lead">Weeks submitted by officers who report to you. Open one to approve it or send it back with a remark.</p><div id="apBody" class="empty">Loading…</div>`;
-  const {data,error}=await sb.from('week_submissions').select('*, profiles(full_name,designation,employee_no)').eq('status','submitted').neq('officer_id',S.me.id).order('week_start');
-  if(error) return err(error);
+  const m=$('#main'); m.innerHTML=`<h1>Approvals</h1><p class="lead">Weeks submitted by the people who report directly to you. Open one to approve it or send it back with a remark.</p><div id="apBody" class="empty">Loading…</div>`;
+  let L; try{ L=await approvalsList(); }catch(x){ return err(x); }
+  const data=(isAdmin()&&AP.all)?L.all:L.mine;
   const b=$('#apBody');
-  if(!data.length){ b.innerHTML='<b>Nothing waiting</b>All submitted weeks are reviewed.'; return; }
-  b.className='panel'; b.innerHTML=`<div class="scroll"><table><thead><tr><th>Officer</th><th>Week</th><th>Submitted</th><th>Week score</th><th></th></tr></thead><tbody>
+  const sw=isAdmin()?`<div class="row" style="justify-content:space-between;margin-bottom:10px"><div class="chips"><button class="chip ${!AP.all?'on':''}" data-ap="0">Reporting to me (${L.mine.length})</button><button class="chip ${AP.all?'on':''}" data-ap="1">Show all (${L.all.length})</button></div><span class="small muted">${AP.all?'Admin view: every submitted week.':L.direct.size+' people report to you directly.'}</span></div>`:'';
+  const bindSw=()=>b.querySelectorAll('[data-ap]').forEach(c=>c.onclick=()=>{ AP.all=c.dataset.ap==='1'; viewApprovals(); });
+  if(!data.length){ b.className='panel'; b.innerHTML=sw+'<div class="empty"><b>Nothing waiting</b>All submitted weeks are reviewed.</div>'; bindSw(); return; }
+  b.className='panel'; b.innerHTML=sw+`<div class="scroll"><table><thead><tr><th>Officer</th>${AP.all?'<th>Reports to</th>':''}<th>Week</th><th>Submitted</th><th>Week score</th><th></th></tr></thead><tbody>
     ${data.map(s=>`<tr class="click" data-id="${s.id}"><td><div class="kpiname">${esc(s.profiles?.full_name)}</div><div class="sub">${s.profiles?.employee_no?'CAM '+esc(s.profiles.employee_no)+' · ':''}${esc(s.profiles?.designation||'')}</div></td>
-      <td>${esc(wkLabel(s.week_start))}</td><td class="small">${new Date(s.submitted_at).toLocaleString()}</td><td>${meter(s.score)}</td><td><button class="btn sm">Review</button></td></tr>`).join('')}</tbody></table></div>`;
-  document.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openReview(data.find(x=>x.id===tr.dataset.id), viewApprovals));
+      ${AP.all?`<td class="small">${esc(([S.me,...S.team].find(p=>(p.email||'').toLowerCase()===(s.profiles?.supervisor_email||'').toLowerCase())||{}).full_name||'–')}</td>`:''}<td>${esc(wkLabel(s.week_start))}</td><td class="small">${new Date(s.submitted_at).toLocaleString()}</td><td>${meter(s.score)}</td><td><button class="btn sm">Review</button></td></tr>`).join('')}</tbody></table></div>`;
+  document.querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openReview(data.find(x=>x.id===tr.dataset.id), viewApprovals)); bindSw();
 }
 async function openReview(sub, after){
   const [{data:rows,error},{data:plans},{data:evs}]=await Promise.all([
@@ -761,10 +772,11 @@ async function viewDashboard(){
   const [from,to,label,maxrank]=period(); const [F,T]=weekBounds();
   try{
     const team=S.team.filter(p=>!D.group||p.designation===D.group); const ids=new Set(team.map(p=>p.id));
-    const [sc,kr,ms,subs]=await Promise.all([
+    const [sc,kr,ms,evr,subs]=await Promise.all([
       sb.rpc('period_scores',{p_from:F,p_to:T,p_maxrank:maxrank}),
       sb.rpc('kpi_rollup',{p_from:F,p_to:T}),
       sb.rpc('month_scores',{p_year:D.year}),
+      fetchAll(()=>sb.from('week_kpis').select('id,officer_id,week_start,kpi_code,kpi_name,evidence').gte('week_start',F).lte('week_start',T).not('evidence','is',null)),
       fetchAll(()=>sb.from('week_submissions').select('officer_id,week_start,status').gte('week_start',F<thisWeek()?F:thisWeek()).lte('week_start',T>thisWeek()?T:thisWeek()).neq('status','draft'))]);
     for(const r of [sc,kr,ms]) if(r.error) throw r.error;
     const scoreOf=Object.fromEntries((sc.data||[]).filter(x=>ids.has(x.officer_id)).map(x=>[x.officer_id,Number(x.score)]));
@@ -796,6 +808,20 @@ async function viewDashboard(){
         <div class="panel chart"><h2>Team score by month, ${D.year}</h2>${bars(mon, MON)}</div>
         <div class="panel"><h2>Weakest KPOs, ${esc(label)}</h2>${kList.length?`<table><tbody>${kList.slice(0,12).map(k=>`<tr><td><div class="code">${esc(k.code||'')}</div>${esc(k.n)}<div class="sub">${k.m==='percent'?'average %':num(k.a)+' of '+num(k.t)}</div></td><td style="width:42%">${meter(k.ach)}</td></tr>`).join('')}</tbody></table><p class="small muted">${kList.length} KPOs in this period; the 12 lowest are shown. Export to Excel for all.</p>`:'<p class="muted small">No submitted weeks in this period.</p>'}</div>
       </div></div>`;
+    const nameOf=Object.fromEntries(team.map(p=>[p.id,p.full_name]));
+    const EVR=(evr||[]).filter(r=>ids.has(r.officer_id)).map(r=>({...r,e:evOf(r)})).filter(r=>r.e.note||r.e.links.length).sort((a,b)=>b.week_start.localeCompare(a.week_start)||String(nameOf[a.officer_id]).localeCompare(nameOf[b.officer_id]));
+    b.insertAdjacentHTML('beforeend',`<div class="panel" id="cmP"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2 style="margin:0">Comments & evidence, ${esc(label)}</h2><p class="small muted" style="margin:4px 0 0">What officers wrote in "Add evidence". Use it to spot work that comes up again and again and may need its own KPO.</p></div>
+      <div class="row"><label class="f" for="cmQ" style="width:240px">Search comments<input id="cmQ" type="search" placeholder="Word, KPO or name"></label><label class="small"><input type="checkbox" id="cmOnly"> Comments only (hide link-only)</label></div></div>
+      <div class="scroll" style="margin-top:10px"><table class="cmt"><thead><tr><th>Officer</th><th>Week</th><th>KPO</th><th>Comment</th><th>Evidence</th></tr></thead><tbody id="cmRows"></tbody></table></div><div id="cmMore"></div></div>`);
+    let cmLim=25;
+    const cmDraw=()=>{ const q=($('#cmQ').value||'').toLowerCase(), only=$('#cmOnly').checked;
+      const f=EVR.filter(r=>(!only||r.e.note)&&(!q||[nameOf[r.officer_id],r.kpi_code,r.kpi_name,r.e.note].join(' ').toLowerCase().includes(q)));
+      $('#cmRows').innerHTML=f.slice(0,cmLim).map(r=>`<tr><td class="small"><b>${esc(nameOf[r.officer_id]||'')}</b></td><td class="small" style="white-space:nowrap">${esc(wkLabel(r.week_start))}</td>
+        <td><div class="code">${esc(r.kpi_code||'')}</div><div class="small">${esc(r.kpi_name||'')}</div></td><td style="white-space:pre-wrap;min-width:240px">${r.e.note?esc(r.e.note):'<span class="muted small">–</span>'}</td>
+        <td class="small">${r.e.links.map(l=>`<div>${evLink(l)}</div>`).join('')||'<span class="muted">–</span>'}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">No comments or evidence in this period.</td></tr>';
+      $('#cmMore').innerHTML=f.length>cmLim?`<button class="btn line" id="cmM" style="margin-top:8px">Show more (${f.length-cmLim})</button>`:`<p class="small muted" style="margin:8px 0 0">${f.length} entries</p>`;
+      $('#cmM')&&($('#cmM').onclick=()=>{cmLim+=50; cmDraw();}); };
+    $('#cmQ').oninput=cmDraw; $('#cmOnly').onchange=cmDraw; cmDraw();
     document.querySelectorAll('tr[data-o]').forEach(tr=>tr.onclick=()=>officerDetail(team.find(p=>p.id===tr.dataset.o)));
     const filt=()=>{ const q=D.q.trim().toLowerCase(); let n=0; document.querySelectorAll('tr[data-o]').forEach(tr=>{ const ok=!q||tr.dataset.s.includes(q); tr.hidden=!ok; if(ok) n++; }); $('#dNo').hidden=n>0; };
     $('#dSearch').oninput=e=>{ D.q=e.target.value; filt(); }; filt();
