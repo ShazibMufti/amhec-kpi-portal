@@ -190,6 +190,9 @@ table.irt tbody tr{cursor:pointer} table.irt tbody tr:hover{background:#f8fafc} 
 .bulk{position:sticky;bottom:0;background:#fff7f7;border:1px solid var(--bad-bg);border-radius:10px;padding:10px 12px;gap:10px;align-items:flex-end}
 td.ck,th:has(#irAll){width:28px}
 table.cmt td{vertical-align:top}
+.ktag{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:10px;background:var(--ok-bg);color:var(--brand);font-size:11.5px;font-weight:600}
+.kinfo{margin-top:4px;font-size:12.5px;color:var(--muted);max-width:520px} .kinfo summary{cursor:pointer;color:var(--brand);font-weight:500;list-style:none} .kinfo summary::-webkit-details-marker{display:none}
+.kinfo[open]{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:6px 10px} .kinfo[open] summary{margin-bottom:4px} .kinfo div{margin:3px 0;line-height:1.45;color:var(--ink)}
 .small.bad{color:var(--bad);font-weight:600}
 .hb{flex:1;height:10px;background:var(--sunk,#eef2f7);border-radius:6px;overflow:hidden;min-width:60px} .hb span{display:block;height:100%;border-radius:6px}
 .hbr{display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 34px;gap:8px;align-items:center;margin:6px 0} .hbr>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -320,6 +323,7 @@ async function startApp(session){
   S.me=me; S.week=thisWeek();
   const {data:ll} = await sb.from('lookup_lists').select('name,items'); S.lists=Object.fromEntries((ll||[]).map(l=>[l.name,l.items||[]]));
   const {data:team} = await sb.from('profiles').select('*').eq('active',true).order('full_name');
+  try{ const {data:ki}=await sb.from('kpi_library').select('id,description,target_text').not('description','is',null); S.kinfo=Object.fromEntries((ki||[]).map(k=>[k.id,k])); }catch(_){ S.kinfo={}; }
   S.team = (team||[]).filter(p=>p.id!==me.id);
   shell(); route();
 }
@@ -402,6 +406,9 @@ const inWeekScore = r => r.target!=null && (r.period==='day'||r.period==='week'|
 const metRow = r => (ach(r.direction, r.measure==='percent'?100:r.target, r.actual, r.measure)||0) >= 0.999;
 const metPill = r => !inWeekScore(r) ? `<span class="sub">${r.target==null?'Record only':'Not counted (nothing entered)'}</span>` : metRow(r) ? '<span class="pill r-ex">✓ Target met</span>' : '<span class="pill r-po">✗ Not met</span>';
 const EVT_LABEL={submitted:'Submitted',approved:'Approved',returned:'Returned'};
+const kTag = r => `<span class="ktag">Target ${r.measure==='percent'?'100%':esc(num(r.period_target)||'–')} · ${esc(r.frequency||'')}</span>`;
+const kInfo = r => { const k=(S.kinfo||{})[r.kpi_id]; if(!k||!(k.description||k.target_text)) return '';
+  return `<details class="kinfo"><summary>ⓘ Full KPO & target</summary>${k.description?`<div><b>KPO:</b> ${esc(k.description)}</div>`:''}${k.target_text?`<div><b>KPI target:</b> ${esc(k.target_text)}</div>`:''}</details>`; };
 const evOf = r => { const e=r&&r.evidence; return {note:(e&&e.note)||'', links:Array.isArray(e&&e.links)?e.links.filter(Boolean):[]}; };
 const evCount = e => (e.note?1:0)+e.links.length;
 const isUrl = v => /^https?:\/\/[^\s]+\.[^\s]+/i.test(String(v||'').trim());
@@ -482,7 +489,7 @@ async function viewMy(){
     const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn ${i===todayIdx?'td':''}" data-day="${i}" title="Open ${d}">${d} ${addD(parse(S.week),i).getDate()}</button>`).join('')}<span class="tot">Week</span></div>`;
     const EV=Object.fromEntries(rows.map(r=>[r.id,evOf(r)]));
     const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">🔗 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
-    const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')} · ${esc(r.category||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>`;
+    const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')} · ${esc(r.category||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${kInfo(r)}`;
     const dayRow = r => { const dv=dayVals(r), pc=r.measure==='percent';
       return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div>${evBtn(r)}</td>
         <td><div class="dg">${DAYN.map((d,i)=>{ const ref=refOf(r,i); return `<div class="dc ${i===todayIdx?'tdc':''}"><input type="number" min="0" ${pc?'max="100"':''} step="any" class="dv ${i===todayIdx?'td':''}" data-r="${r.id}" data-i="${i}" value="${esc(dv[i]??'')}" placeholder="${pc?'%':'0'}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d}">
@@ -719,7 +726,7 @@ async function openReview(sub, after){
     <div class="row">${spill(sub.status)}<button class="btn line sm" id="mClose">Close</button></div></div>
     <div class="scroll"><table><thead><tr><th>KPO</th><th>Target</th><th>${dayHeadRO(sub.week_start)}</th></tr></thead><tbody>
     ${rows.map(r=>{ const wk=(r.period==='day'||r.period==='week'||r.measure==='percent')&&r.target!=null;
-      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div><div style="margin-top:4px">${metPill(r)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">🔗 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
+      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${kInfo(r)}<div style="margin-top:4px">${metPill(r)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">🔗 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
       <td>${dayRO(r)}</td></tr>`;}).join('')}
     </tbody></table></div>
     ${pLines.length?`<h2 style="margin:6px 0 0">Officer's plan</h2><div class="scroll"><table><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
@@ -924,7 +931,7 @@ async function viewPlan(){
       ${st==='submitted'?'<div class="note warn" style="margin-bottom:10px">The officer has already submitted this week. Changing targets updates the score.</div>':''}
       ${locked?'<div class="note good" style="margin-bottom:10px">This week is approved and locked.</div>':''}
       ${rows.length?`<div class="scroll"><table><thead><tr><th>KPO</th><th>Frequency</th><th class="n">Target per period</th><th>${dayHeadBtn(P.week)}</th><th></th></tr></thead><tbody>
-      ${rows.map(r=>`<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div></td><td class="small">${esc(r.frequency||'')}</td>
+      ${rows.map(r=>`<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${kInfo(r)}</td><td class="small">${esc(r.frequency||'')}</td>
         <td class="n">${r.measure==='percent'?'100%':`<input type="number" min="0" step="any" id="t_${r.id}" value="${r.period_target??''}" placeholder="none" style="width:96px" ${locked?'disabled':''} aria-label="Target per period">`}</td>
         <td>${dayRO(r)}</td>
         <td>${locked?'':`<button class="btn line sm" data-del="${r.id}">Remove</button>`}</td></tr>`).join('')}</tbody></table></div>`
@@ -1340,7 +1347,7 @@ async function setupRules(){
     const state={}; lib.forEach(k=>{ const r=curBy[k.id]; state[k.id]={on:!!r&&!r.excluded, ex:!!r?.excluded, t:r?(r.target??''):'1', m:r?.measure||k.measure}; });
     const rowsHtml=()=>{ const q=filter.toLowerCase();
       $('#rRows').innerHTML=lib.filter(k=>(!onlyOn||state[k.id].on||state[k.id].ex)&&(!kfn||k.function_area===kfn)&&(!q||[k.code,k.name,k.category].join(' ').toLowerCase().includes(q))).map(k=>{ const s=state[k.id];
-        return `<tr><td><input type="checkbox" data-k="${k.id}" data-f="on" ${s.on?'checked':''} aria-label="Use ${esc(k.code)}"></td><td><div class="code">${esc(k.code||'')} · ${esc(k.category||'')}</div>${esc(k.name)}</td><td class="small">${esc(k.frequency||PERIODS[k.period])}</td>
+        return `<tr><td><input type="checkbox" data-k="${k.id}" data-f="on" ${s.on?'checked':''} aria-label="Use ${esc(k.code)}"></td><td><div class="code">${esc(k.code||'')} · ${esc(k.category||'')}</div>${esc(k.name)}${kInfo({kpi_id:k.id})}</td><td class="small">${esc(k.frequency||PERIODS[k.period])}</td>
         <td><select data-k="${k.id}" data-f="m" aria-label="Measured as"><option value="count" ${s.m!=='percent'?'selected':''}>Count</option><option value="percent" ${s.m==='percent'?'selected':''}>%</option></select></td>
         <td class="n"><input type="number" min="0" step="any" data-k="${k.id}" data-f="t" value="${s.m==='percent'?100:s.t}" placeholder="none" style="width:90px" ${s.m==='percent'?'disabled':''} aria-label="Target"></td>
         ${type==='officer'?`<td><input type="checkbox" data-k="${k.id}" data-f="ex" ${s.ex?'checked':''} aria-label="Remove for this officer"></td>`:''}</tr>`; }).join('')||'<tr><td colspan="6" class="muted">No KPOs match. Untick "Show assigned only" to add KPOs.</td></tr>';
