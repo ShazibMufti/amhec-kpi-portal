@@ -292,7 +292,7 @@ const dayVal = (r,i) => Array.isArray(r.daily)&&r.daily[i]!==''&&r.daily[i]!=nul
 const dayRO = r => `<div class="dg ro">${DAYN.map((d,i)=>{ const ref=refOf(r,i); return `<span title="${d}${ref?': '+esc(ref):''}">${dayVal(r,i)!=null?num(r.daily[i]):'·'}${ref?`<small>${esc(ref)}</small>`:''}</span>`; }).join('')}<b class="tot">${r.actual==null?'–':num(r.actual)+(r.measure==='percent'?'%':'')}</b></div>`;
 const dayHeadRO = week => `<div class="dg dh">${DAYN.map((d,i)=>`<span>${d} ${addD(parse(week),i).getDate()}</span>`).join('')}<span class="tot">Week</span></div>`;
 const dayHeadBtn = week => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn" data-day="${i}" title="Open ${d} ${shortD(ymd(addD(parse(week),i)))}">${d} ${addD(parse(week),i).getDate()}</button>`).join('')}<span class="tot">Week</span></div>`;
-const tgtText = r => r.measure==='percent' ? '100%' : (r.period_target==null ? 'Record only' : `${num(r.period_target)} ${PERIODS[r.period]||''}`);
+const tgtText = r => r.measure==='percent' ? '100%' : (r.period_target==null ? 'Record only' : (r.period==='event'&&r.frequency ? `${num(r.period_target)} · ${r.frequency} (when it happens)` : `${num(r.period_target)} ${PERIODS[r.period]||''}`));
 
 async function fetchAll(make){ let out=[], from=0; for(;;){ const {data,error}=await make().range(from,from+999); if(error) throw error; out=out.concat(data); if(data.length<1000) break; from+=1000; } return out; }
 
