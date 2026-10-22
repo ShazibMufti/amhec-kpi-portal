@@ -190,9 +190,9 @@ table.irt tbody tr{cursor:pointer} table.irt tbody tr:hover{background:#f8fafc} 
 .bulk{position:sticky;bottom:0;background:#fff7f7;border:1px solid var(--bad-bg);border-radius:10px;padding:10px 12px;gap:10px;align-items:flex-end}
 td.ck,th:has(#irAll){width:28px}
 table.cmt td{vertical-align:top}
-.ktag{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:10px;background:var(--ok-bg);color:var(--brand);font-size:11.5px;font-weight:600}
-.kinfo{margin-top:4px;font-size:12.5px;color:var(--muted);max-width:520px} .kinfo summary{cursor:pointer;color:var(--brand);font-weight:500;list-style:none} .kinfo summary::-webkit-details-marker{display:none}
-.kinfo[open]{background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:6px 10px} .kinfo[open] summary{margin-bottom:4px} .kinfo div{margin:3px 0;line-height:1.45;color:var(--ink)}
+table.kt td.kpo{min-width:260px;max-width:420px} table.kt td.ktt{min-width:200px;max-width:320px;font-size:13px;color:var(--ink);line-height:1.45;vertical-align:top}
+table.kt td.kpo .kpiname{line-height:1.45} .kti{margin-top:4px;line-height:1.45;max-width:560px}
+@media (max-width:760px){ table.kt thead{display:none} table.kt tr{display:grid;border-bottom:1px solid var(--line);padding:8px 0} table.kt td{border:0;max-width:none!important;min-width:0!important} table.kt td.ktt:before{content:'KPI target: ';font-weight:600} }
 .small.bad{color:var(--bad);font-weight:600}
 .hb{flex:1;height:10px;background:var(--sunk,#eef2f7);border-radius:6px;overflow:hidden;min-width:60px} .hb span{display:block;height:100%;border-radius:6px}
 .hbr{display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 34px;gap:8px;align-items:center;margin:6px 0} .hbr>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -323,7 +323,7 @@ async function startApp(session){
   S.me=me; S.week=thisWeek();
   const {data:ll} = await sb.from('lookup_lists').select('name,items'); S.lists=Object.fromEntries((ll||[]).map(l=>[l.name,l.items||[]]));
   const {data:team} = await sb.from('profiles').select('*').eq('active',true).order('full_name');
-  try{ const {data:ki}=await sb.from('kpi_library').select('id,description,target_text').not('description','is',null); S.kinfo=Object.fromEntries((ki||[]).map(k=>[k.id,k])); }catch(_){ S.kinfo={}; }
+  try{ const {data:ki}=await sb.from('kpi_library').select('id,target_text').not('target_text','is',null); S.kinfo=Object.fromEntries((ki||[]).map(k=>[k.id,k])); }catch(_){ S.kinfo={}; }
   S.team = (team||[]).filter(p=>p.id!==me.id);
   shell(); route();
 }
@@ -406,9 +406,10 @@ const inWeekScore = r => r.target!=null && (r.period==='day'||r.period==='week'|
 const metRow = r => (ach(r.direction, r.measure==='percent'?100:r.target, r.actual, r.measure)||0) >= 0.999;
 const metPill = r => !inWeekScore(r) ? `<span class="sub">${r.target==null?'Record only':'Not counted (nothing entered)'}</span>` : metRow(r) ? '<span class="pill r-ex">✓ Target met</span>' : '<span class="pill r-po">✗ Not met</span>';
 const EVT_LABEL={submitted:'Submitted',approved:'Approved',returned:'Returned'};
-const kTag = r => `<span class="ktag">Target ${r.measure==='percent'?'100%':esc(num(r.period_target)||'–')} · ${esc(r.frequency||'')}</span>`;
-const kInfo = r => { const k=(S.kinfo||{})[r.kpi_id]; if(!k||!(k.description||k.target_text)) return '';
-  return `<details class="kinfo"><summary>ⓘ Full KPO & target</summary>${k.description?`<div><b>KPO:</b> ${esc(k.description)}</div>`:''}${k.target_text?`<div><b>KPI target:</b> ${esc(k.target_text)}</div>`:''}</details>`; };
+const kLib = r => (S.kinfo||{})[r.kpi_id]||{};
+const kFull = r => r.kpi_name||'';
+const kTarget = r => kLib(r).target_text||'';
+const kInfo = r => kTarget(r)?`<div class="sub kti"><b>KPI target:</b> ${esc(kTarget(r))}</div>`:'';
 const evOf = r => { const e=r&&r.evidence; return {note:(e&&e.note)||'', links:Array.isArray(e&&e.links)?e.links.filter(Boolean):[]}; };
 const evCount = e => (e.note?1:0)+e.links.length;
 const isUrl = v => /^https?:\/\/[^\s]+\.[^\s]+/i.test(String(v||'').trim());
@@ -489,9 +490,10 @@ async function viewMy(){
     const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn ${i===todayIdx?'td':''}" data-day="${i}" title="Open ${d}">${d} ${addD(parse(S.week),i).getDate()}</button>`).join('')}<span class="tot">Week</span></div>`;
     const EV=Object.fromEntries(rows.map(r=>[r.id,evOf(r)]));
     const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">🔗 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
-    const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')} · ${esc(r.category||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${kInfo(r)}`;
+    const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(kFull(r))}</div>`;
+    const ktCell = r => `<td class="ktt">${esc(kTarget(r)||'–')}</td>`;
     const dayRow = r => { const dv=dayVals(r), pc=r.measure==='percent';
-      return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div>${evBtn(r)}</td>
+      return `<tr><td class="kpo">${kpiCell(r)}<div class="sub"><span class="tg">Target: ${esc(tgtText(r))}</span></div>${evBtn(r)}</td>${ktCell(r)}
         <td><div class="dg">${DAYN.map((d,i)=>{ const ref=refOf(r,i); return `<div class="dc ${i===todayIdx?'tdc':''}"><input type="number" min="0" ${pc?'max="100"':''} step="any" class="dv ${i===todayIdx?'td':''}" data-r="${r.id}" data-i="${i}" value="${esc(dv[i]??'')}" placeholder="${pc?'%':'0'}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d}">
             <select class="lc ${ref?'set':''}" data-r="${r.id}" data-i="${i}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d} location">${locOpts(locList(),ref)}</select></div>`; }).join('')}
           <b class="tot" id="tot_${r.id}">${pc?(r.actual==null?'–':num(r.actual)+'%'):num(Number(r.actual)||0)}</b></div></td></tr>`; };
@@ -506,10 +508,10 @@ async function viewMy(){
     const pRow = (g,r) => { const pv=before(r);
       const cells=cols[g].map(c=>{ if(g==='mo') return c.cur?pInput(r):`<span class="pv">${c.fut?'·':num(wkSum(r,c.key))}</span>`;
           const v=monSum(r,c.key); return `<span class="pv ${c.cur?'cm':''}" ${c.cur?`id="cm_${r.id}" data-base="${v}"`:''}>${c.fut?'·':num(v+(c.cur?(Number(r.actual)||0):0))}</span>`; }).join('');
-      return `<tr><td>${kpiCell(r)}<div class="sub"><span class="tg">${esc(tgtText(r))}</span></div>${evBtn(r)}</td>
+      return `<tr><td class="kpo">${kpiCell(r)}<div class="sub"><span class="tg">Target: ${esc(tgtText(r))}</span></div>${evBtn(r)}</td>${ktCell(r)}
         <td><div class="pgg" style="--n:${cols[g].length}">${cells}${g==='mo'?'':pInput(r)}<b class="tot" id="pt_${r.id}" data-prev="${pv}">${num(pv+(Number(r.actual)||0))}${r.period_target!=null?`<small>of ${num(r.period_target)}</small>`:''}</b></div></td></tr>`; };
     const grp = (title,list,head,rowFn,open,note) => list.length?`<details class="grp" ${open?'open':''}><summary><span>${title} <span class="muted small">(${list.length})</span></span></summary><div class="in scroll">${note?`<p class="small muted" style="margin:0 0 6px">${note}</p>`:''}<table class="kt">
-      <thead><tr><th>KPO and target</th><th>${head}</th></tr></thead><tbody>${list.map(rowFn).join('')}</tbody></table></div></details>`:'';
+      <thead><tr><th>KPO</th><th>KPI Target</th><th>${head}</th></tr></thead><tbody>${list.map(rowFn).join('')}</tbody></table></div></details>`:'';
     const norm = rows.filter(r=>r.measure!=='percent'&&r.period_target!=null);
     const G = { dy:norm.filter(r=>r.period==='day'||r.period==='event'), wk:norm.filter(r=>r.period==='week'),
       mo:norm.filter(r=>r.period==='month'||r.period==='bimonth'), qt:norm.filter(r=>r.period==='quarter'||r.period==='half'), yr:norm.filter(r=>r.period==='year'),
@@ -726,7 +728,7 @@ async function openReview(sub, after){
     <div class="row">${spill(sub.status)}<button class="btn line sm" id="mClose">Close</button></div></div>
     <div class="scroll"><table><thead><tr><th>KPO</th><th>Target</th><th>${dayHeadRO(sub.week_start)}</th></tr></thead><tbody>
     ${rows.map(r=>{ const wk=(r.period==='day'||r.period==='week'||r.measure==='percent')&&r.target!=null;
-      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${kInfo(r)}<div style="margin-top:4px">${metPill(r)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">🔗 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
+      const ev=evOf(r); return `<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(kFull(r))}</div>${kInfo(r)}<div style="margin-top:4px">${metPill(r)}</div>${evCount(ev)?`<div class="evbox"><span class="small" style="font-weight:600">🔗 Evidence</span>${evView(ev)}</div>`:''}</td><td class="small">${esc(tgtText(r))}</td>
       <td>${dayRO(r)}</td></tr>`;}).join('')}
     </tbody></table></div>
     ${pLines.length?`<h2 style="margin:6px 0 0">Officer's plan</h2><div class="scroll"><table><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
@@ -931,7 +933,7 @@ async function viewPlan(){
       ${st==='submitted'?'<div class="note warn" style="margin-bottom:10px">The officer has already submitted this week. Changing targets updates the score.</div>':''}
       ${locked?'<div class="note good" style="margin-bottom:10px">This week is approved and locked.</div>':''}
       ${rows.length?`<div class="scroll"><table><thead><tr><th>KPO</th><th>Frequency</th><th class="n">Target per period</th><th>${dayHeadBtn(P.week)}</th><th></th></tr></thead><tbody>
-      ${rows.map(r=>`<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(r.kpi_name)}</div>${kInfo(r)}</td><td class="small">${esc(r.frequency||'')}</td>
+      ${rows.map(r=>`<tr><td><div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(kFull(r))}</div>${kInfo(r)}</td><td class="small">${esc(r.frequency||'')}</td>
         <td class="n">${r.measure==='percent'?'100%':`<input type="number" min="0" step="any" id="t_${r.id}" value="${r.period_target??''}" placeholder="none" style="width:96px" ${locked?'disabled':''} aria-label="Target per period">`}</td>
         <td>${dayRO(r)}</td>
         <td>${locked?'':`<button class="btn line sm" data-del="${r.id}">Remove</button>`}</td></tr>`).join('')}</tbody></table></div>`
@@ -1278,6 +1280,29 @@ async function setupPeople(){
   };
   render();
 }
+async function kpoExcel(){
+  try{ toast('Preparing the Excel file…');
+    const [{data:lib,error:e1},{data:rules,error:e2},{data:asg,error:e3},{data:people,error:e4}]=await Promise.all([
+      sb.from('kpi_library').select('*').order('code'),
+      sb.from('assignment_rules').select('*').eq('active',true).is('effective_to',null),
+      sb.rpc('kpo_assignments_all'),
+      sb.from('profiles').select('*').order('full_name')]);
+    const e=e1||e2||e3||e4; if(e) throw e;
+    const K=Object.fromEntries(lib.map(k=>[k.id,k])), byEmail=Object.fromEntries(people.map(p=>[(p.email||'').toLowerCase(),p]));
+    const tgt=(t,m)=>m==='percent'?'100%':(t==null?'':Number(t));
+    const s1=lib.map(k=>({'Code':k.code||'','KPO':k.name,'KPI Target':k.target_text||'','Frequency':k.frequency||'','Target period':PERIODS[k.period]||k.period||'','Measured as':k.measure==='percent'?'%':'Count','Category':k.category||'','Function':k.function_area||'','Status':k.active?'Active':'Inactive'}));
+    const s2=rules.filter(r=>r.scope_type!=='officer'&&!r.excluded&&K[r.kpi_id]).map(r=>{ const k=K[r.kpi_id]; return {'Assigned by':r.scope_type==='designation'?'Designation':r.scope_type==='function'?'Function':'Category','Designation / group':r.scope_value,'Function':r.scope_function||'All','Code':k.code||'','KPO':k.name,'KPI Target':k.target_text||'','Frequency':k.frequency||'','Target per period':tgt(r.target,r.measure||k.measure),'KPO status':k.active?'Active':'Inactive','From':r.effective_from}; })
+      .sort((a,b)=>(a['Designation / group']+a.Function+a.Code).localeCompare(b['Designation / group']+b.Function+b.Code));
+    const s3=[]; const by={}; (asg||[]).forEach(a=>(by[a.officer_id]=by[a.officer_id]||[]).push(a));
+    people.forEach(p=>{ const base={'Name':p.full_name,'CAM No.':p.employee_no||'','Designation':p.designation||'','Function':p.function||'','Reports to':(byEmail[(p.supervisor_email||'').toLowerCase()]||{}).full_name||'','Person status':p.active?'Active':'Inactive'};
+      const list=(by[p.id]||[]).map(a=>K[a.kpi_id]?{a,k:K[a.kpi_id]}:null).filter(Boolean).sort((x,y)=>String(x.k.code).localeCompare(y.k.code));
+      if(!list.length) s3.push({...base,'Code':'','KPO':p.active?'No KPOs assigned':'Inactive – no KPOs','KPI Target':'','Frequency':'','Target per period':''});
+      list.forEach(({a,k})=>s3.push({...base,'Code':k.code||'','KPO':k.name,'KPI Target':k.target_text||'','Frequency':k.frequency||'','Target per period':tgt(a.target,a.measure||k.measure)})); });
+    const wb=XLSX.utils.book_new(), add=(rows,name,cols)=>{ const ws=XLSX.utils.json_to_sheet(rows); ws['!cols']=cols.map(w=>({wch:w})); ws['!autofilter']={ref:ws['!ref']}; XLSX.utils.book_append_sheet(wb,ws,name); };
+    add(s1,'KPO list',[12,70,60,14,14,10,26,24,10]); add(s2,'By designation',[12,26,24,12,70,60,14,10,10,12]); add(s3,'By person',[26,9,24,22,24,10,12,70,60,14,10]);
+    XLSX.writeFile(wb,`AMHEC_KPO_List_${ymd(new Date())}.xlsx`);
+  }catch(x){ err(x); }
+}
 async function setupKpis(){
   const {data:lib,error}=await sb.from('kpi_library').select('*').eq('active',true).order('code'); if(error) throw error;
   const cats=[...new Set(lib.map(k=>k.category).filter(Boolean))].sort();
@@ -1285,7 +1310,8 @@ async function setupKpis(){
   let filter='';
   const render=(k)=>{ b.innerHTML=`<form id="kF" class="panel stack"><h2 style="margin:0">${k?.id?'Edit KPO '+esc(k.code||''):'Add a KPO'}</h2><div class="grid3">
       <label class="f" for="k_c">KPO ID<input id="k_c" type="text" required value="${esc(k?.code)}"></label>
-      <label class="f" for="k_n" style="grid-column:span 2">Activity / KPO<input id="k_n" type="text" required value="${esc(k?.name)}"></label>
+      <label class="f" for="k_n" style="grid-column:span 2">Activity / KPO<textarea id="k_n" rows="2" required>${esc(k?.name)}</textarea></label>
+      <label class="f" for="k_tt" style="grid-column:1/-1">KPI target (as written)<textarea id="k_tt" rows="2" placeholder="e.g. Review and update 100% of departmental training matrices monthly…">${esc(k?.target_text)}</textarea></label>
       <label class="f" for="k_fn">Function<select id="k_fn">${opts(FUNCTIONS,k?.function_area,'Choose function')}</select></label>
       <label class="f" for="k_cat">Category<input id="k_cat" type="text" list="cats" value="${esc(k?.category)}"></label>
       <label class="f" for="k_fq">Frequency (as written)<input id="k_fq" type="text" value="${esc(k?.frequency)}" placeholder="e.g. Monthly"></label>
@@ -1295,17 +1321,17 @@ async function setupKpis(){
     </div><datalist id="cats">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
     <div class="row"><button class="btn" type="submit">${k?.id?'Save KPO':'Add KPO'}</button>${k?.id?'<button class="btn line" type="button" id="kC">Cancel</button><button class="btn line" type="button" id="kOff">Remove from list</button>':''}</div>
     <p class="small muted" style="margin:0">Targets are set per designation in KPO assignment. Changes apply to weeks created after saving.</p></form>
-    <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">${lib.length} KPOs</h2><label class="f" for="kq" style="width:280px">Search<input id="kq" type="search" value="${esc(filter)}" placeholder="ID, name or category"></label></div>
+    <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">${lib.length} KPOs</h2><div class="row"><button class="btn line" type="button" id="kXls">Download Excel (KPO list, by designation, by person)</button><label class="f" for="kq" style="width:280px">Search<input id="kq" type="search" value="${esc(filter)}" placeholder="ID, name or category"></label></div></div>
     <div class="scroll"><table><thead><tr><th>KPO</th><th>Category</th><th>Function</th><th>Frequency</th><th></th></tr></thead><tbody id="kRows"></tbody></table></div></div>`;
     const rowsHtml=()=>{ const q=filter.toLowerCase(); $('#kRows').innerHTML=lib.filter(x=>!q||[x.code,x.name,x.category,x.function_area].join(' ').toLowerCase().includes(q)).map(x=>`<tr><td><div class="code">${esc(x.code||'')}</div>${esc(x.name)}</td><td class="small">${esc(x.category||'')}</td><td class="small">${esc(x.function_area||'')}</td><td class="small">${esc(x.frequency||'')}${x.measure==='percent'?' · %':''}</td><td><button class="btn line sm" data-e="${x.id}">Edit</button></td></tr>`).join('');
       b.querySelectorAll('[data-e]').forEach(x=>x.onclick=()=>{render(lib.find(l=>l.id===x.dataset.e)); window.scrollTo(0,0);}); };
-    rowsHtml(); $('#kq').oninput=e=>{filter=e.target.value; rowsHtml();};
+    rowsHtml(); $('#kXls').onclick=kpoExcel; $('#kq').oninput=e=>{filter=e.target.value; rowsHtml();};
     $('#kC')&&($('#kC').onclick=()=>render());
     $('#kOff')&&($('#kOff').onclick=async()=>{ if(!confirmInline($('#kOff'),'Click again to remove')) return;
       const {error}=await sb.from('kpi_library').update({active:false}).eq('id',k.id); if(error) return err(error);
       await sb.from('assignment_rules').update({active:false,effective_to:ymd(addD(parse(thisWeek()),-1))}).eq('kpi_id',k.id).eq('active',true);
       toast('KPO removed. It no longer appears in new weeks.'); viewSetup(); });
-    $('#kF').onsubmit=async e=>{ e.preventDefault(); const v={code:$('#k_c').value.trim(),name:$('#k_n').value.trim(),function_area:$('#k_fn').value||null,category:$('#k_cat').value.trim()||null,frequency:$('#k_fq').value.trim()||null,period:$('#k_p').value,measure:$('#k_m').value,direction:$('#k_d').value};
+    $('#kF').onsubmit=async e=>{ e.preventDefault(); const v={code:$('#k_c').value.trim(),name:$('#k_n').value.trim(),target_text:$('#k_tt').value.trim()||null,function_area:$('#k_fn').value||null,category:$('#k_cat').value.trim()||null,frequency:$('#k_fq').value.trim()||null,period:$('#k_p').value,measure:$('#k_m').value,direction:$('#k_d').value};
       const {error}=await (k?.id?sb.from('kpi_library').update(v).eq('id',k.id):sb.from('kpi_library').insert(v)); if(error) return err(error); toast(k?.id?'KPO saved.':'KPO added. Assign it to a designation next.'); viewSetup(); };
   };
   render();
@@ -1347,7 +1373,7 @@ async function setupRules(){
     const state={}; lib.forEach(k=>{ const r=curBy[k.id]; state[k.id]={on:!!r&&!r.excluded, ex:!!r?.excluded, t:r?(r.target??''):'1', m:r?.measure||k.measure}; });
     const rowsHtml=()=>{ const q=filter.toLowerCase();
       $('#rRows').innerHTML=lib.filter(k=>(!onlyOn||state[k.id].on||state[k.id].ex)&&(!kfn||k.function_area===kfn)&&(!q||[k.code,k.name,k.category].join(' ').toLowerCase().includes(q))).map(k=>{ const s=state[k.id];
-        return `<tr><td><input type="checkbox" data-k="${k.id}" data-f="on" ${s.on?'checked':''} aria-label="Use ${esc(k.code)}"></td><td><div class="code">${esc(k.code||'')} · ${esc(k.category||'')}</div>${esc(k.name)}${kInfo({kpi_id:k.id})}</td><td class="small">${esc(k.frequency||PERIODS[k.period])}</td>
+        return `<tr><td><input type="checkbox" data-k="${k.id}" data-f="on" ${s.on?'checked':''} aria-label="Use ${esc(k.code)}"></td><td><div class="code">${esc(k.code||'')} · ${esc(k.category||'')}</div>${esc(k.name)}${k.target_text?`<div class="sub kti"><b>KPI target:</b> ${esc(k.target_text)}</div>`:''}</td><td class="small">${esc(k.frequency||PERIODS[k.period])}</td>
         <td><select data-k="${k.id}" data-f="m" aria-label="Measured as"><option value="count" ${s.m!=='percent'?'selected':''}>Count</option><option value="percent" ${s.m==='percent'?'selected':''}>%</option></select></td>
         <td class="n"><input type="number" min="0" step="any" data-k="${k.id}" data-f="t" value="${s.m==='percent'?100:s.t}" placeholder="none" style="width:90px" ${s.m==='percent'?'disabled':''} aria-label="Target"></td>
         ${type==='officer'?`<td><input type="checkbox" data-k="${k.id}" data-f="ex" ${s.ex?'checked':''} aria-label="Remove for this officer"></td>`:''}</tr>`; }).join('')||'<tr><td colspan="6" class="muted">No KPOs match. Untick "Show assigned only" to add KPOs.</td></tr>';
