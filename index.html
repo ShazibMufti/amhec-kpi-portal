@@ -490,7 +490,7 @@ async function viewMy(){
     const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn ${i===todayIdx?'td':''}" data-day="${i}" title="Open ${d}">${d} ${addD(parse(S.week),i).getDate()}</button>`).join('')}<span class="tot">Week</span></div>`;
     const EV=Object.fromEntries(rows.map(r=>[r.id,evOf(r)]));
     const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">🔗 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
-    const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')}</div><div class="kpiname">${esc(kFull(r))}</div>`;
+    const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')}${r.category?' · '+esc(r.category):''}</div><div class="kpiname">${esc(kFull(r))}</div>`;
     const ktCell = r => `<td class="ktt">${esc(kTarget(r)||'–')}</td>`;
     const dayRow = r => { const dv=dayVals(r), pc=r.measure==='percent';
       return `<tr><td class="kpo">${kpiCell(r)}<div class="sub"><span class="tg">Target: ${esc(tgtText(r))}</span></div>${evBtn(r)}</td>${ktCell(r)}
@@ -513,7 +513,7 @@ async function viewMy(){
     const grp = (title,list,head,rowFn,open,note) => list.length?`<details class="grp" ${open?'open':''}><summary><span>${title} <span class="muted small">(${list.length})</span></span></summary><div class="in scroll">${note?`<p class="small muted" style="margin:0 0 6px">${note}</p>`:''}<table class="kt">
       <thead><tr><th>KPO</th><th>KPI Target</th><th>${head}</th></tr></thead><tbody>${list.map(rowFn).join('')}</tbody></table></div></details>`:'';
     const norm = rows.filter(r=>r.measure!=='percent'&&r.period_target!=null);
-    const G = { dy:norm.filter(r=>r.period==='day'||r.period==='event'), wk:norm.filter(r=>r.period==='week'),
+    const G = { dy:norm.filter(r=>r.period==='day'), ev:norm.filter(r=>r.period==='event'), wk:norm.filter(r=>r.period==='week'),
       mo:norm.filter(r=>r.period==='month'||r.period==='bimonth'), qt:norm.filter(r=>r.period==='quarter'||r.period==='half'), yr:norm.filter(r=>r.period==='year'),
       pc:rows.filter(r=>r.measure==='percent'), rc:rows.filter(r=>r.period_target==null&&r.measure!=='percent') };
     // plan this week
@@ -550,11 +550,12 @@ async function viewMy(){
         <div class="chgbar" id="chgBar" hidden><span id="chgN">0 unsaved changes</span><button class="btn sm" type="button" id="chgSave">Save draft</button><button class="btn line sm" type="button" id="chgUndo">Undo changes</button></div>
         <form id="myF" class="${todayIdx>=0&&!locked&&!S.fullWeek?'todayMode':''}">
           ${planHtml}
-          ${grp('Daily KPOs',G.dy,dayHead(),dayRow,true,'Daily and event-driven KPOs. Enter each day\'s number and pick the client or location under it.')}
-          ${grp('Weekly KPOs',G.wk,dayHead(),dayRow,true)}
-          ${grp(`Monthly KPOs – ${MON[M]} ${Y}`,G.mo,pHead('mo'),r=>pRow('mo',r),true,'Enter this week\'s number in the highlighted week. Other weeks show what you entered before.')}
-          ${grp(`Quarterly KPOs – Q${Math.floor(M/3)+1} ${Y}`,G.qt,pHead('qt'),r=>pRow('qt',r),false,'Month totals so far. Enter this week\'s number under This week.')}
-          ${grp(`Yearly KPOs – ${Y}`,G.yr,pHead('yr'),r=>pRow('yr',r),false,'Month totals so far. Enter this week\'s number under This week.')}
+          ${grp('Daily KPO Tasks',G.dy,dayHead(),dayRow,true,'Enter each day\'s number and pick the client or location under it.')}
+          ${grp('Weekly KPO Tasks',G.wk,dayHead(),dayRow,true)}
+          ${grp('Event-driven KPO Tasks (when it happens)',G.ev,dayHead(),dayRow,true,'Fill these only on the day the event happens, e.g. a rig move, convoy, incident or drill.')}
+          ${grp(`Monthly KPO Tasks – ${MON[M]} ${Y}`,G.mo,pHead('mo'),r=>pRow('mo',r),true,'Enter this week\'s number in the highlighted week. Other weeks show what you entered before.')}
+          ${grp(`Quarterly KPO Tasks – Q${Math.floor(M/3)+1} ${Y}`,G.qt,pHead('qt'),r=>pRow('qt',r),true,'Month totals so far. Enter this week\'s number under This week.')}
+          ${grp(`Yearly KPO Tasks – ${Y}`,G.yr,pHead('yr'),r=>pRow('yr',r),false,'Month totals so far. Enter this week\'s number under This week.')}
           ${grp('Percentage KPOs (enter % achieved)',G.pc,dayHead(),dayRow,true)}
           ${grp('Record only (no target)',G.rc,dayHead(),dayRow,false)}
           <div class="panel stack">
