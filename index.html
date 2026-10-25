@@ -146,6 +146,8 @@ details.grp>.in{padding:0 14px 12px}
 .seg button{border:0;background:var(--surface);padding:7px 14px;cursor:pointer;font-weight:600;color:var(--muted)}
 .seg button.on{background:var(--brand);color:#fff}
 table.mp td{vertical-align:top}
+.dbtn.off{opacity:.6} tr.offday td{background:#f8fafc} .offtag{color:var(--warn);font-weight:600}
+.planempty{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#f5f7ff;border:1px dashed #c7d2fe;border-radius:10px;padding:12px 14px}
 .plkt{margin:-2px 40px 10px 0;padding:6px 10px;border-left:3px solid var(--brand2);background:#f5f7ff;border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.45;color:var(--ink)}
 .pl{display:grid;grid-template-columns:minmax(0,1fr) 96px 34px;gap:6px;align-items:center;margin-bottom:6px}
 .pl.note{grid-template-columns:minmax(0,1fr) 34px}
@@ -238,7 +240,7 @@ const FUNCTIONS = ['HSE Operations','Quality Assurance','Journey Management','QH
 const DESIGNATIONS = ['Officer HSE','Senior Officer HSE','Supervisor HSE','Superintendent HSE','Manager HSE','Manager Quality & HSES Programs','Coordinator QHSE Training','Document Controller','Head of QHSE','DATA MANAGEMENT & QHSE DIGITALIZATION','ADMINISTRATOR HSE','MEDIC','RIG SUPERVISOR','RIG SUPERINTENDENT','Champion Journey Management','JM ADMIN','PREMISES HEAD','PREMISES SUPERVISOR'];
 const ROLE = {officer:'Officer',supervisor:'Supervisor / Manager',admin:'Admin'};
 const desigOf = v => { const t=String(v||'').trim(); return DESIGNATIONS.find(d=>d.toLowerCase()===t.toLowerCase())||t; };
-const PERIODS = {day:'per day',week:'per week',month:'per month',event:'per month (event-driven)',bimonth:'per 2 months',quarter:'per quarter',half:'per half-year',year:'per year'};
+const PERIODS = {day:'per day (Sat–Thu)',week:'per week',month:'per month',event:'per month (event-driven)',bimonth:'per 2 months',quarter:'per quarter',half:'per half-year',year:'per year'};
 const RANK = {day:0,week:1,month:2,event:2,bimonth:3,quarter:3,half:4,year:5};
 const GROUPS = [['wk','Daily and weekly KPOs',p=>p==='day'||p==='week'],['mo','Monthly KPOs',p=>p==='month'],['ev','Event-driven KPOs',p=>p==='event'],['lt','Quarterly, half-year and annual KPOs',p=>['bimonth','quarter','half','year'].includes(p)]];
 const S = { me:null, week:null, team:[], loginEmail:'' };
@@ -272,7 +274,7 @@ function periodWindow(period, d){ // calendar window of a KPO period containing 
   return [new Date(y,0,1), new Date(y,11,31), String(y)];
 }
 const weeklyTarget = (t,period,measure) => measure==='percent' ? 100 : (t==null||t==='' ? null :
-  Math.round(Number(t)*({day:7,week:1,month:12/52,event:12/52,bimonth:6/52,quarter:4/52,half:2/52,year:1/52}[period]??1)*10000)/10000);
+  Math.round(Number(t)*({day:6,week:1,month:12/52,event:12/52,bimonth:6/52,quarter:4/52,half:2/52,year:1/52}[period]??1)*10000)/10000);
 
 // ---------- scoring ----------
 function ach(dir,t,a,measure){ if(t==null) return null; a=Number(a)||0; t=Number(t)||0;
@@ -369,7 +371,7 @@ async function refreshPending(){
   const el=$('#pc'); if(el){ el.hidden=!count; el.textContent=count||''; }
 }
 function go(k){ S.tab=k; try{ if(location.hash!=='#'+k) history.pushState(null,'','#'+k); }catch(_){} route(); window.scrollTo(0,0); }
-document.addEventListener('click',e=>{ const a=e.target.closest('a[href^="#"]'); if(!a||!S.me) return; const k=a.getAttribute('href').slice(1); if(!TITLES[k]) return; e.preventDefault(); go(k); });
+document.addEventListener('click',e=>{ if(e.target.id==='goPlan'){ PL.week=thisWeek(); go('myplan'); return; } const a=e.target.closest('a[href^="#"]'); if(!a||!S.me) return; const k=a.getAttribute('href').slice(1); if(!TITLES[k]) return; e.preventDefault(); go(k); });
 function route(){
   let t=S.tab||(location.hash||'#my').slice(1).split('/')[0];
   const allowed=['my','myplan','ir']; if(!isMgr()) allowed.push('mydash'); if(isMgr()) allowed.push('approvals','dashboard','plan','plans'); if(isAdmin()) allowed.push('setup');
@@ -488,7 +490,7 @@ async function viewMy(){
     const todayIdx=DAYN.findIndex((d,i)=>ymd(addD(parse(S.week),i))===ymd(new Date()));
     const dayVals = r => Array.isArray(r.daily) ? DAYN.map((d,i)=>r.daily[i]??'') : DAYN.map(()=>'');
     const isDayRow = r => r.measure==='percent' || r.period_target==null || ['day','week','event'].includes(r.period);
-    const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn ${i===todayIdx?'td':''}" data-day="${i}" title="Open ${d}">${d} ${addD(parse(S.week),i).getDate()}</button>`).join('')}<span class="tot">Week</span></div>`;
+    const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn ${i===todayIdx?'td':''} ${i===6?'off':''}" data-day="${i}" title="${i===6?'Friday is off – not counted in the score':'Open '+d}">${d} ${addD(parse(S.week),i).getDate()}${i===6?' · off':''}</button>`).join('')}<span class="tot">Week</span></div>`;
     const EV=Object.fromEntries(rows.map(r=>[r.id,evOf(r)]));
     const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">🔗 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
     const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')}${r.category?' · '+esc(r.category):''}</div><div class="kpiname">${esc(kFull(r))}</div>`;
@@ -521,7 +523,7 @@ async function viewMy(){
     const byId=Object.fromEntries(rows.map(r=>[r.id,r])); const byKpi=Object.fromEntries(rows.map(r=>[r.kpi_id,r]));
     const pl=Object.fromEntries((plans||[]).map(x=>[x.day,x]));
     const planRows=[]; DAYN.forEach((d,i)=>planItems(pl[i]).forEach((it,j)=>planRows.push({i,j,it,loc:pl[i]?.location||''})));
-    const planHtml = planRows.length?`<details class="grp" open><summary><span>My plan this week <span class="muted small">(${planRows.length})</span></span></summary><div class="in scroll">
+    const planHtml = !planRows.length ? `<details class="grp" open><summary><span>My plan this week <span class="muted small">(0)</span></span></summary><div class="in"><div class="planempty"><div><b>No plan for this week yet.</b> Plan where you will be each day and which KPOs you will do. Planned targets (Sat–Thu) count in your score.</div><button type="button" class="btn sm" id="goPlan">Make my plan for this week</button></div></div></details>` : `<details class="grp" open><summary><span>My plan this week <span class="muted small">(${planRows.length})</span></span></summary><div class="in scroll">
       <p class="small muted" style="margin:0 0 6px">From My plan. Enter how much you did against each line. KPO lines are the same as in the KPO tables below, so a number entered here also fills that KPO's day (and the other way round). These targets count in your score.</p>
       <table class="plt"><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
       ${planRows.map(p=>{ const r=p.it.t==='kpi'?byKpi[p.it.kpi_id]:null; let inp;
@@ -532,8 +534,7 @@ async function viewMy(){
         return `<tr><td><b>${DAYN[p.i]}</b> <span class="sub">${esc(shortD(ymd(addD(parse(S.week),p.i))))}</span></td><td>${esc(p.loc||'–')}</td>
           <td>${p.it.t==='kpi'?`<div class="code">${esc(p.it.code||'')}</div>${esc(p.it.name)}`:p.it.t==='note'?`<span class="sub" style="white-space:pre-wrap">💬 ${esc(p.it.text||'')}</span>`:esc(p.it.text||'Planned work')}</td>
           <td class="n"><b>${p.it.target==null?'–':num(p.it.target)}</b></td><td class="n">${inp}</td></tr>`; }).join('')}
-      </tbody></table></div></details>`
-      : `<div class="note" style="margin-bottom:12px">No plan for this week. <a class="link" href="#myplan">Make your plan</a> – where you go each day, what you will do and your targets.</div>`;
+      </tbody></table></div></details>`;
     const hasEntry = r => (Array.isArray(r.daily) ? r.daily.some(v=>v!==''&&v!=null) : (r.actual!=null&&Number(r.actual)!==0)) || (Number(r.actual)||0)>0;
     const filled = rows.filter(hasEntry).length;
     const evsOf = k => evs.filter(e=>e.week_start===k);
@@ -986,6 +987,18 @@ async function openRefresh(officer, week, name, onDone){
     await sb.rpc('recalc_score',{p_officer:officer,p_week:week});
     md.remove(); toast(`KPOs refreshed: ${add.length} added, ${rem.length} removed.`); onDone&&onDone(); };
 }
+async function autoApply(added,removed,from){ // after saving an assignment, bring weeks already created in line straight away
+  const tw=thisWeek(); const note=$('#rApplyNote');
+  try{
+    const {data:done,error}=await sb.rpc('refresh_future_weeks',{p_apply:true,p_only:null}); if(error) throw error;
+    const ids=(done||[]).flatMap(r=>r.remove_ids||[]).filter(Boolean);
+    for(let i=0;i<ids.length;i+=100){ const {error:e3}=await sb.from('week_kpis').delete().in('id',ids.slice(i,i+100)); if(e3) throw e3; }
+    for(const r of (done||[])) if(r.status!=='draft') await sb.rpc('recalc_score',{p_officer:r.officer_id,p_week:r.week_start});
+    const ppl=new Set((done||[]).map(r=>r.officer_id)).size, wks=(done||[]).length;
+    const msg=`Saved: ${added} added or changed, ${removed} removed.`+(wks?` ${wks} week${wks>1?'s':''} already created for ${ppl} ${ppl>1?'people were':'person was'} updated too.`:' No created weeks needed changes.')+(from>tw?` Changes start from ${wkLabel(from)}, so this week stays as it is.`:'');
+    toast(msg); if(note){ note.hidden=false; note.textContent=msg; }
+  }catch(x){ err(x); }
+}
 async function openRefreshAll(){
   const {data:rows,error}=await sb.rpc('refresh_future_weeks',{p_apply:false,p_only:null}); if(error) return err(error);
   const md=document.createElement('div'); md.className='modal'; md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Apply to weeks already created" style="max-width:760px">
@@ -1038,7 +1051,7 @@ async function viewMyPlan(){
     const draw=()=>{
       b.innerHTML=`${locked?`<div class="note good" style="margin-bottom:10px">This week is ${sub.status==='approved'?'approved':'submitted'}, so the plan is locked.</div>`:''}
       <form id="mpF"><div class="scroll"><table class="mp"><thead><tr><th style="width:84px">Day</th><th style="width:190px">Location / client</th><th>Plan</th><th style="width:96px">Target</th><th style="width:40px"></th></tr></thead><tbody>
-      ${DAYN.map((d,i)=>`<tr class="dayrow"><td><b>${d}</b><div class="sub">${esc(shortD(ymd(addD(parse(PL.week),i))))}</div></td>
+      ${DAYN.map((d,i)=>`<tr class="dayrow ${i===6?'offday':''}"><td><b>${d}</b><div class="sub">${esc(shortD(ymd(addD(parse(PL.week),i))))}</div>${i===6?'<div class="sub offtag">Off day – not counted</div>':''}</td>
         <td><select data-l="${i}" ${dis} aria-label="${d} location">${locOpts(list,st[i].location,'Choose location')}</select></td>
         <td colspan="3">${st[i].items.map((it,j)=>it.t==='kpi'?`<div class="pl">
             <select data-k="${i}" data-j="${j}" ${dis} aria-label="${d} KPO">${kOpts(it.kpi_id)}</select>
@@ -1370,7 +1383,7 @@ async function setupRules(){
       <div class="row" style="justify-content:space-between"><b>${cur.length} KPOs assigned to ${esc((vals(type).find(v=>v[0]===who)||[,''])[1])}${type==='designation'&&fn?' in '+esc(fn):''}</b>
         <div class="row"><label class="f" for="r_kfn" style="width:200px">KPO function<select id="r_kfn"><option value="">All</option>${FUNCTIONS.map(f=>`<option ${f===kfn?'selected':''}>${esc(f)}</option>`).join('')}</select></label><label class="small"><input type="checkbox" id="r_on" ${onlyOn?'checked':''}> Show assigned only</label><label class="f" for="rq" style="width:240px">Search<input id="rq" type="search" value="${esc(filter)}" placeholder="ID, name or category"></label></div></div>
       <div class="scroll"><table><thead><tr><th>Use</th><th>KPO</th><th>Frequency</th><th>Measured as</th><th class="n">Target per period</th>${type==='officer'?'<th>Remove for this officer</th>':''}</tr></thead><tbody id="rRows"></tbody></table></div>
-      <div class="row"><button class="btn" type="submit">Save assignment</button><button class="btn line" type="button" id="rApply">↻ Apply to weeks already created</button><span class="small muted">New weeks pick up changes by themselves. Weeks already opened need this button (or Weekly plan → Refresh KPOs).</span></div>
+      <div class="row"><button class="btn" type="submit">Save assignment</button><button class="btn line" type="button" id="rApply">↻ Check weeks already created</button><span class="small muted">Saving now also updates weeks already created (from the "Changes apply from" week). KPOs that already have data are kept.</span></div><div class="note good" id="rApplyNote" hidden style="margin-top:8px"></div>
     </form>`;
     const state={}; lib.forEach(k=>{ const r=curBy[k.id]; state[k.id]={on:!!r&&!r.excluded, ex:!!r?.excluded, t:r?(r.target??''):'1', m:r?.measure||k.measure}; });
     const rowsHtml=()=>{ const q=filter.toLowerCase();
@@ -1397,7 +1410,8 @@ async function setupRules(){
         const same=r && !!r.excluded===s.ex && (r.target==null?null:Number(r.target))===t && (r.measure||k.measure)===s.m;
         if(r && (!want || !same)){ const {error}=await sb.from('assignment_rules').update({effective_to:endPrev, active: want}).eq('id',r.id); if(error) return err(error); if(!want) removed++; }
         if(want && !same){ const {error}=await sb.from('assignment_rules').insert({scope_type:type,scope_value:who,scope_function:type==='designation'&&fn?fn:null,kpi_id:k.id,target:t,weight:1,excluded:s.ex,measure:s.m===k.measure?null:s.m,effective_from:from,loc_list:r?.loc_list||null}); if(error) return err(error); added++; } }
-      toast(added||removed?`Saved: ${added} added or changed, ${removed} removed.`:'No changes to save.'); await draw(); if(added||removed) openRefreshAll(); };
+      if(!(added||removed)){ toast('No changes to save.'); return; }
+      await draw(); await autoApply(added,removed,from); };
     $('#rApply').onclick=openRefreshAll;
   };
   await draw();
