@@ -150,6 +150,7 @@ table.mp td{vertical-align:top}
 .planempty{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#f5f7ff;border:1px dashed #c7d2fe;border-radius:10px;padding:12px 14px}
 .dhc{display:grid;gap:3px;justify-items:stretch} .addpl{border:1px dashed #a5b4fc;background:#f5f7ff;color:var(--brand);border-radius:6px;font-size:11px;font-weight:600;padding:2px 4px;cursor:pointer;white-space:nowrap} .addpl:hover{background:#e0e7ff}
 tr.kna td{background:#fffbeb}
+.ownadd{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)} .ownpill{background:#ede9fe;color:#6d28d9}
 .plkt{margin:-2px 40px 10px 0;padding:6px 10px;border-left:3px solid var(--brand2);background:#f5f7ff;border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.45;color:var(--ink)}
 .pl{display:grid;grid-template-columns:minmax(0,1fr) 96px 34px;gap:6px;align-items:center;margin-bottom:6px}
 .pl.note{grid-template-columns:minmax(0,1fr) 34px}
@@ -413,7 +414,7 @@ const metPill = r => !inWeekScore(r) ? `<span class="sub">${r.target==null?'Reco
 const EVT_LABEL={submitted:'Submitted',approved:'Approved',returned:'Returned'};
 const kLib = r => (S.kinfo||{})[r.kpi_id]||{};
 const kFull = r => r.kpi_name||'';
-const kTarget = r => kLib(r).target_text||'';
+const kTarget = r => kLib(r).target_text||r.target_text||'';
 const kInfo = r => kTarget(r)?`<div class="sub kti"><b>KPI target:</b> ${esc(kTarget(r))}</div>`:'';
 const evOf = r => { const e=r&&r.evidence; return {note:(e&&e.note)||'', links:Array.isArray(e&&e.links)?e.links.filter(Boolean):[]}; };
 const evCount = e => (e.note?1:0)+e.links.length;
@@ -487,6 +488,22 @@ function addPlanLine(day, cur, after){ // quick "+ Add plan" from My KPOs: own w
     if(error){ e.target.disabled=false; return err(error); }
     md.remove(); toast(`Added to your plan for ${d}. Enter what you did under My plan this week.`); after&&after(); };
 }
+function addOwnLine(per, title){ // "+ Add plan" inside a My KPOs section: own work line with a target, stored as a row of this week
+  const pname={day:'per day (Sat–Thu)',week:'per week',event:'each time it happens',month:'per month',quarter:'per quarter'}[per]||'';
+  const md=document.createElement('div'); md.className='modal'; md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Add plan" style="max-width:560px">
+    <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Add plan</h2><div class="small muted">${esc(title)} · week of ${esc(wkLabel(S.week))}</div></div><button class="btn line sm" type="button" id="aoX">Close</button></div>
+    <label class="f" for="aoN">What will you do<textarea id="aoN" rows="2" placeholder="e.g. Support fire drill at Old Yard camp"></textarea></label>
+    <label class="f" for="aoK">KPI target (optional)<input id="aoK" type="text" placeholder="e.g. Complete drill report within 1 working day"></label>
+    <div class="row" style="align-items:flex-end"><label class="f" for="aoT" style="width:140px">Target<input id="aoT" type="number" min="0" step="any" value="1"></label><span class="small muted" style="padding-bottom:10px">${pname}</span></div>
+    <p class="small muted" style="margin:0">It shows in this section like a KPO: enter the number on the day you do it and pick the location.</p>
+    <div class="row"><button class="btn" type="button" id="aoS">Add to this week</button></div></div>`;
+  document.body.appendChild(md); md.querySelector('#aoX').onclick=()=>md.remove(); md.querySelector('#aoN').focus();
+  md.querySelector('#aoS').onclick=async e=>{ const n=md.querySelector('#aoN').value.trim(), t=md.querySelector('#aoT').value;
+    if(!n) return toast('Write what you will do.'); e.target.disabled=true;
+    const {error}=await sb.rpc('add_own_line',{p_week:S.week,p_name:n,p_period:per,p_target:t===''?null:Number(t),p_target_text:md.querySelector('#aoK').value.trim()||null});
+    if(error){ e.target.disabled=false; return err(error); }
+    md.remove(); toast('Added to this week. Enter your numbers on the day you do it.'); viewMy(); };
+}
 async function viewMy(){
   const m=$('#main'); m.innerHTML=`<h1>My KPOs</h1><p class="lead">Enter what you did this week (Saturday to Friday), then submit for approval. Click a day (Sat to Fri) to see everything you entered for that day.</p>${ribbon(S.week,'my')}${isMgr()?'':'<p class="small muted" style="margin:-6px 0 12px">Your scores and charts are in <a class="link" href="#mydash">My Dashboard</a>.</p>'}<div id="myBody" class="empty">Loading your KPOs…</div>`;
   bindRibbon('my',()=>S.week,w=>S.week=w,viewMy);
@@ -511,10 +528,12 @@ async function viewMy(){
     const todayIdx=DAYN.findIndex((d,i)=>ymd(addD(parse(S.week),i))===ymd(new Date()));
     const dayVals = r => Array.isArray(r.daily) ? DAYN.map((d,i)=>r.daily[i]??'') : DAYN.map(()=>'');
     const isDayRow = r => r.measure==='percent' || r.period_target==null || ['day','week','event'].includes(r.period);
-    const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<div class="dhc"><button type="button" class="dbtn ${i===todayIdx?'td':''} ${i===6?'off':''}" data-day="${i}" title="${i===6?'Friday is off – not counted in the score':'Open '+d}">${d} ${addD(parse(S.week),i).getDate()}${i===6?' · off':''}</button>${locked?'':`<button type="button" class="addpl" data-apd="${i}" title="Add your own work for ${d} with a target">+ Add plan</button>`}</div>`).join('')}<span class="tot">Week</span></div>`;
+    const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<div class="dhc"><button type="button" class="dbtn ${i===todayIdx?'td':''} ${i===6?'off':''}" data-day="${i}" title="${i===6?'Friday is off – not counted in the score':'Open '+d}">${d} ${addD(parse(S.week),i).getDate()}${i===6?' · off':''}</button></div>`).join('')}<span class="tot">Week</span></div>`;
     const EV=Object.fromEntries(rows.map(r=>[r.id,evOf(r)]));
     const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">🔗 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
-    const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')}${r.category?' · '+esc(r.category):''}</div><div class="kpiname">${esc(kFull(r))}</div>`;
+    const isOwn = r => !r.kpi_id && r.kpi_code==='PLAN';
+    const kpiCell = r => isOwn(r) ? `<div class="code"><span class="pill ownpill">My plan</span>${locked?'':` <button type="button" class="x" data-rmown="${r.id}" title="Remove this plan line">×</button>`}</div><div class="kpiname">${esc(r.kpi_name)}</div>`
+      : `<div class="code">${esc(r.kpi_code||'')}${r.category?' · '+esc(r.category):''}</div><div class="kpiname">${esc(kFull(r))}</div>`;
     const ktCell = r => `<td class="ktt">${esc(kTarget(r)||'–')}</td>`;
     const dayRow = r => { const dv=dayVals(r), pc=r.measure==='percent';
       return `<tr><td class="kpo">${kpiCell(r)}<div class="sub"><span class="tg">Target: ${esc(tgtText(r))}</span></div>${evBtn(r)}</td>${ktCell(r)}
@@ -534,8 +553,8 @@ async function viewMy(){
           const v=monSum(r,c.key); return `<span class="pv ${c.cur?'cm':''}" ${c.cur?`id="cm_${r.id}" data-base="${v}"`:''}>${c.fut?'·':num(v+(c.cur?(Number(r.actual)||0):0))}</span>`; }).join('');
       return `<tr><td class="kpo">${kpiCell(r)}<div class="sub"><span class="tg">Target: ${esc(tgtText(r))}</span></div>${evBtn(r)}</td>${ktCell(r)}
         <td><div class="pgg" style="--n:${cols[g].length}">${cells}${g==='mo'?'':pInput(r)}<b class="tot" id="pt_${r.id}" data-prev="${pv}">${num(pv+(Number(r.actual)||0))}${r.period_target!=null?`<small>of ${num(r.period_target)}</small>`:''}</b></div></td></tr>`; };
-    const grp = (title,list,head,rowFn,open,note) => list.length?`<details class="grp" ${open?'open':''}><summary><span>${title} <span class="muted small">(${list.length})</span></span></summary><div class="in scroll">${note?`<p class="small muted" style="margin:0 0 6px">${note}</p>`:''}<table class="kt">
-      <thead><tr><th>KPO</th><th>KPI Target</th><th>${head}</th></tr></thead><tbody>${list.map(rowFn).join('')}</tbody></table></div></details>`:'';
+    const grp = (title,list,head,rowFn,open,note,per) => (list.length||(per&&!locked))?`<details class="grp" ${open&&list.length?'open':''}><summary><span>${title} <span class="muted small">(${list.length})</span></span></summary><div class="in scroll">${note?`<p class="small muted" style="margin:0 0 6px">${note}</p>`:''}${list.length?`<table class="kt">
+      <thead><tr><th>KPO</th><th>KPI Target</th><th>${head}</th></tr></thead><tbody>${list.map(rowFn).join('')}</tbody></table>`:'<p class="small muted" style="margin:4px 0">No KPOs in this section yet.</p>'}${per&&!locked?`<div class="ownadd"><button type="button" class="btn line sm" data-own="${per}" data-ttl="${esc(title)}">+ Add plan</button><span class="small muted">Your own work for this week that is not in the KPO list. It works like a KPO and counts in your score.</span></div>`:''}</div></details>`:'';
     const norm = rows.filter(r=>r.measure!=='percent'&&r.period_target!=null);
     const G = { dy:norm.filter(r=>r.period==='day'), ev:norm.filter(r=>r.period==='event'), wk:norm.filter(r=>r.period==='week'),
       mo:norm.filter(r=>r.period==='month'||r.period==='bimonth'), qt:norm.filter(r=>r.period==='quarter'||r.period==='half'), yr:norm.filter(r=>r.period==='year'),
@@ -568,16 +587,14 @@ async function viewMy(){
       </div>
         ${st==='returned'?`<div class="note bad" style="margin-bottom:10px"><b>Returned by ${esc(sub.reviewed_by||'manager')}:</b> ${esc(sub.supervisor_remarks)}</div>`:''}
         ${st==='approved'?`<div class="note good" style="margin-bottom:10px">Approved by ${esc(sub.reviewed_by)}${sub.supervisor_remarks?': '+esc(sub.supervisor_remarks):''}</div>`:''}
-        ${todayIdx>=0&&!locked?`<div class="viewbar"><div class="seg" role="group" aria-label="View"><button type="button" data-vm="today" class="${S.fullWeek?'':'on'}">Today – ${DAYN[todayIdx]} ${addD(parse(S.week),todayIdx).getDate()}</button><button type="button" data-vm="week" class="${S.fullWeek?'on':''}">Full week (edit any day)</button></div>
-          <span class="small muted">${S.fullWeek?'All days are open. Click any box to change it, then Save draft.':'Showing only today. Earlier days are kept in the Week total; open Full week to see or edit them.'}</span></div>`:''}
         <div class="chgbar" id="chgBar" hidden><span id="chgN">0 unsaved changes</span><button class="btn sm" type="button" id="chgSave">Save draft</button><button class="btn line sm" type="button" id="chgUndo">Undo changes</button></div>
-        <form id="myF" class="${todayIdx>=0&&!locked&&!S.fullWeek?'todayMode':''}">
+        <form id="myF">
           ${planHtml}
-          ${grp('Daily KPO Tasks',G.dy,dayHead(),dayRow,true,'Enter each day\'s number and pick the client or location under it.')}
-          ${grp('Weekly KPO Tasks',G.wk,dayHead(),dayRow,true)}
-          ${grp('Event-driven KPO Tasks (when it happens)',G.ev,dayHead(),dayRow,true,'Fill these only on the day the event happens, e.g. a rig move, convoy, incident or drill.')}
-          ${grp(`Monthly KPO Tasks – ${MON[M]} ${Y}`,G.mo,pHead('mo'),r=>pRow('mo',r),true,'Enter this week\'s number in the highlighted week. Other weeks show what you entered before.')}
-          ${grp(`Quarterly KPO Tasks – Q${Math.floor(M/3)+1} ${Y}`,G.qt,pHead('qt'),r=>pRow('qt',r),true,'Month totals so far. Enter this week\'s number under This week.')}
+          ${grp('Daily KPO Tasks',G.dy,dayHead(),dayRow,true,'Enter each day\'s number and pick the client or location under it.','day')}
+          ${grp('Weekly KPO Tasks',G.wk,dayHead(),dayRow,true,'','week')}
+          ${grp('Event-driven KPO Tasks (when it happens)',G.ev,dayHead(),dayRow,true,'Fill these only on the day the event happens, e.g. a rig move, convoy, incident or drill.','event')}
+          ${grp(`Monthly KPO Tasks – ${MON[M]} ${Y}`,G.mo,pHead('mo'),r=>pRow('mo',r),true,'Enter this week\'s number in the highlighted week. Other weeks show what you entered before.','month')}
+          ${grp(`Quarterly KPO Tasks – Q${Math.floor(M/3)+1} ${Y}`,G.qt,pHead('qt'),r=>pRow('qt',r),true,'Month totals so far. Enter this week\'s number under This week.','quarter')}
           ${grp(`Yearly KPO Tasks – ${Y}`,G.yr,pHead('yr'),r=>pRow('yr',r),false,'Month totals so far. Enter this week\'s number under This week.')}
           ${grp('Percentage KPOs (enter % achieved)',G.pc,dayHead(),dayRow,true)}
           ${grp('Record only (no target)',G.rc,dayHead(),dayRow,false)}
@@ -592,7 +609,9 @@ async function viewMy(){
     document.querySelectorAll('tr[data-w]').forEach(tr=>tr.onclick=e=>{ if(e.target.closest('[data-tl]')) return; S.week=tr.dataset.w; viewMy();});
     document.querySelectorAll('[data-tl]').forEach(b=>b.onclick=()=>{ const r=$('#tl_'+b.dataset.tl); r.hidden=!r.hidden; });
     document.querySelectorAll('#myBody .dbtn').forEach(b=>b.onclick=()=>openDay(S.week,+b.dataset.day,S.me.id,'one'));
-    document.querySelectorAll('#myBody [data-apd]').forEach(bt=>bt.onclick=()=>addPlanLine(+bt.dataset.apd, pl[bt.dataset.apd], viewMy));
+    document.querySelectorAll('#myBody [data-own]').forEach(bt=>bt.onclick=()=>addOwnLine(bt.dataset.own, bt.dataset.ttl));
+    document.querySelectorAll('#myBody [data-rmown]').forEach(bt=>bt.onclick=async()=>{ if(!confirmInline(bt,'Remove?')) return;
+      const {error}=await sb.rpc('remove_own_line',{p_id:bt.dataset.rmown}); if(error) return err(error); toast('Plan line removed.'); viewMy(); });
     document.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>openEvidence(byId[b.dataset.ev], EV[b.dataset.ev], locked, v=>{ EV[b.dataset.ev]=v; const n=evCount(v);
       b.classList.toggle('on',!!n); b.textContent='📎 '+(n?`Evidence (${n})`:'Add evidence'); toast('Evidence added. Click Save draft to keep it.'); }));
     const daysOf = id => [...document.querySelectorAll(`input.dv[data-r="${id}"]`)].map(x=>x.value);
