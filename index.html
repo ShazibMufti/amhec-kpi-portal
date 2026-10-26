@@ -525,7 +525,7 @@ function addOwnLine(per, title){ // "+ Add plan" inside a My KPOs section: own w
     md.remove(); toast('Added to this week. Enter your numbers on the day you do it.'); viewMy(); };
 }
 async function viewMy(){
-  const m=$('#main'); m.innerHTML=`<h1>My KPOs</h1><p class="lead">Enter what you did this week (Saturday to Friday), then submit for approval. Click a day (Sat to Fri) to see everything you entered for that day.</p>${ribbon(S.week,'my')}${isMgr()?'':'<p class="small muted" style="margin:-6px 0 12px">Your scores and charts are in <a class="link" href="#mydash">My Dashboard</a>.</p>'}<div id="myBody" class="empty">Loading your KPOs…</div>`;
+  const m=$('#main'); m.innerHTML=`<h1>My KPOs</h1><p class="lead">Enter what you did this week (Saturday to Thursday – Friday is off), then submit for approval by Thursday. Click a day (Sat to Fri) to see everything you entered for that day.</p>${ribbon(S.week,'my')}${isMgr()?'':'<p class="small muted" style="margin:-6px 0 12px">Your scores and charts are in <a class="link" href="#mydash">My Dashboard</a>.</p>'}<div id="myBody" class="empty">Loading your KPOs…</div>`;
   bindRibbon('my',()=>S.week,w=>S.week=w,viewMy);
   try{
     const {error:e0}=await sb.rpc('ensure_week_plan',{p_officer:S.me.id,p_week:S.week}); if(e0) throw e0;
