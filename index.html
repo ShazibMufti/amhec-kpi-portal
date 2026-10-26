@@ -605,7 +605,7 @@ async function viewMy(){
         <div class="tile"><span class="k">This week's score</span><span class="v" style="color:${col(sub?.score)}">${pct(sub?.score)}</span><span class="s">${rpill(sub?.score)}</span></div>
         <div class="tile"><span class="k">KPOs this week</span><span class="v">${rows.length}</span><span class="s">${planRows.length?planRows.length+' plan lines':esc(S.me.designation||'')}</span></div>
         <div class="tile"><span class="k">Filled in</span><span class="v" id="filledN">${filled}/${rows.length}</span><span class="s">KPOs with an entry this week</span></div>
-        <div class="tile"><span class="k">Status</span><span class="v" style="font-size:22px;margin-top:6px">${spill(st)}</span><span class="s">${sub?.submitted_at?'Submitted '+new Date(sub.submitted_at).toLocaleDateString():'Submit by Friday'}</span></div>
+        <div class="tile"><span class="k">Status</span><span class="v" style="font-size:22px;margin-top:6px">${spill(st)}</span><span class="s">${sub?.submitted_at?'Submitted '+new Date(sub.submitted_at).toLocaleDateString():'Submit by Thursday'}</span></div>
       </div>
         ${st==='returned'?`<div class="note bad" style="margin-bottom:10px"><b>Returned by ${esc(sub.reviewed_by||'manager')}:</b> ${esc(sub.supervisor_remarks)}</div>`:''}
         ${st==='approved'?`<div class="note good" style="margin-bottom:10px">Approved by ${esc(sub.reviewed_by)}${sub.supervisor_remarks?': '+esc(sub.supervisor_remarks):''}</div>`:''}
@@ -623,7 +623,7 @@ async function viewMy(){
           <div class="panel stack">
             <label class="f" for="rem">Remarks for your manager<textarea id="rem" ${locked?'disabled':''} placeholder="Highlights, problems, support needed">${esc(sub?.officer_remarks||'')}</textarea></label>
             <div class="row">${locked?`<span class="muted small">This week is ${st==='approved'?'approved':'waiting for approval'} and can no longer be changed.</span>`:
-              `<button class="btn" type="submit" data-submit="1">Submit week for approval</button><button class="btn line" type="submit" data-submit="0">Save draft</button><span class="small muted">You can save every day and submit on Friday. Empty days count as 0.</span>`}</div>
+              `<button class="btn" type="submit" data-submit="1">Submit week for approval</button><button class="btn line" type="submit" data-submit="0">Save draft</button><span class="small muted">Save draft every day and submit by Thursday (Friday is off). Empty days count as 0.</span>`}</div>
           </div>
         </form>
         <div class="panel" style="margin-top:16px"><h2>My recent weeks</h2>${hist.length?`<table class="rw"><tbody>${hist.map(h=>`<tr class="click" data-w="${h.week_start}"><td>${esc(wkLabel(h.week_start))}</td><td>${spill(h.status)}</td><td class="n"><b>${pct(h.score)}</b></td><td class="n"><button type="button" class="btn line sm" data-tl="${h.week_start}">History</button></td></tr>
