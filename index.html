@@ -148,6 +148,8 @@ details.grp>.in{padding:0 14px 12px}
 table.mp td{vertical-align:top}
 .dbtn.off{opacity:.6} tr.offday td{background:#f8fafc} .offtag{color:var(--warn);font-weight:600}
 .planempty{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#f5f7ff;border:1px dashed #c7d2fe;border-radius:10px;padding:12px 14px}
+.dhc{display:grid;gap:3px;justify-items:stretch} .addpl{border:1px dashed #a5b4fc;background:#f5f7ff;color:var(--brand);border-radius:6px;font-size:11px;font-weight:600;padding:2px 4px;cursor:pointer;white-space:nowrap} .addpl:hover{background:#e0e7ff}
+tr.kna td{background:#fffbeb}
 .plkt{margin:-2px 40px 10px 0;padding:6px 10px;border-left:3px solid var(--brand2);background:#f5f7ff;border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.45;color:var(--ink)}
 .pl{display:grid;grid-template-columns:minmax(0,1fr) 96px 34px;gap:6px;align-items:center;margin-bottom:6px}
 .pl.note{grid-template-columns:minmax(0,1fr) 34px}
@@ -466,6 +468,25 @@ function openEvidence(r, cur, locked, onDone){
 }
 
 // ---------- My KPOs ----------
+function addPlanLine(day, cur, after){ // quick "+ Add plan" from My KPOs: own work with a target for one day of this week
+  const d=DAYN[day], date=addD(parse(S.week),day);
+  const md=document.createElement('div'); md.className='modal'; md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Add plan" style="max-width:520px">
+    <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Add plan – ${d} ${date.getDate()} ${MON[date.getMonth()]}</h2><div class="small muted">Work that is not in your KPO list. Its target counts in your score${day===6?' (Friday is off – not counted)':''}.</div></div><button class="btn line sm" type="button" id="apX">Close</button></div>
+    <label class="f" for="apL">Location / client<select id="apL">${locOpts(locList(),cur?.location||'','Choose location')}</select></label>
+    <label class="f" for="apT">What will you do<input id="apT" type="text" placeholder="e.g. Fire drill support at Old Yard camp"></label>
+    <label class="f" for="apN" style="max-width:160px">Target<input id="apN" type="number" min="0" step="any" value="1"></label>
+    ${planItems(cur).length?`<div class="small muted">Already planned for ${d}: ${planItems(cur).map(it=>esc(lineName(it))+(it.target!=null?' ('+num(it.target)+')':'')).join(' · ')}</div>`:''}
+    <div class="row"><button class="btn" type="button" id="apS">Add to my plan</button></div></div>`;
+  document.body.appendChild(md); md.querySelector('#apX').onclick=()=>md.remove(); md.querySelector('#apT').focus();
+  md.querySelector('#apS').onclick=async e=>{ const tx=md.querySelector('#apT').value.trim(), tg=md.querySelector('#apN').value;
+    if(!tx) return toast('Write what you will do.'); e.target.disabled=true;
+    const items=[...planItems(cur).filter(it=>it.t!=='note'), {t:'text',text:tx,target:tg===''?null:Number(tg),done:null}];
+    const row={officer_id:S.me.id, week_start:S.week, day, location:md.querySelector('#apL').value||cur?.location||null, items,
+      activity:items.map(it=>lineName(it)+(it.target!=null?` (target ${it.target})`:'')).join('\n'), updated_at:new Date().toISOString()};
+    const {error}=await sb.from('week_plans').upsert([row],{onConflict:'officer_id,week_start,day'});
+    if(error){ e.target.disabled=false; return err(error); }
+    md.remove(); toast(`Added to your plan for ${d}. Enter what you did under My plan this week.`); after&&after(); };
+}
 async function viewMy(){
   const m=$('#main'); m.innerHTML=`<h1>My KPOs</h1><p class="lead">Enter what you did this week (Saturday to Friday), then submit for approval. Click a day (Sat to Fri) to see everything you entered for that day.</p>${ribbon(S.week,'my')}${isMgr()?'':'<p class="small muted" style="margin:-6px 0 12px">Your scores and charts are in <a class="link" href="#mydash">My Dashboard</a>.</p>'}<div id="myBody" class="empty">Loading your KPOs…</div>`;
   bindRibbon('my',()=>S.week,w=>S.week=w,viewMy);
@@ -490,7 +511,7 @@ async function viewMy(){
     const todayIdx=DAYN.findIndex((d,i)=>ymd(addD(parse(S.week),i))===ymd(new Date()));
     const dayVals = r => Array.isArray(r.daily) ? DAYN.map((d,i)=>r.daily[i]??'') : DAYN.map(()=>'');
     const isDayRow = r => r.measure==='percent' || r.period_target==null || ['day','week','event'].includes(r.period);
-    const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<button type="button" class="dbtn ${i===todayIdx?'td':''} ${i===6?'off':''}" data-day="${i}" title="${i===6?'Friday is off – not counted in the score':'Open '+d}">${d} ${addD(parse(S.week),i).getDate()}${i===6?' · off':''}</button>`).join('')}<span class="tot">Week</span></div>`;
+    const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<div class="dhc"><button type="button" class="dbtn ${i===todayIdx?'td':''} ${i===6?'off':''}" data-day="${i}" title="${i===6?'Friday is off – not counted in the score':'Open '+d}">${d} ${addD(parse(S.week),i).getDate()}${i===6?' · off':''}</button>${locked?'':`<button type="button" class="addpl" data-apd="${i}" title="Add your own work for ${d} with a target">+ Add plan</button>`}</div>`).join('')}<span class="tot">Week</span></div>`;
     const EV=Object.fromEntries(rows.map(r=>[r.id,evOf(r)]));
     const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">🔗 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
     const kpiCell = r => `<div class="code">${esc(r.kpi_code||'')}${r.category?' · '+esc(r.category):''}</div><div class="kpiname">${esc(kFull(r))}</div>`;
@@ -571,6 +592,7 @@ async function viewMy(){
     document.querySelectorAll('tr[data-w]').forEach(tr=>tr.onclick=e=>{ if(e.target.closest('[data-tl]')) return; S.week=tr.dataset.w; viewMy();});
     document.querySelectorAll('[data-tl]').forEach(b=>b.onclick=()=>{ const r=$('#tl_'+b.dataset.tl); r.hidden=!r.hidden; });
     document.querySelectorAll('#myBody .dbtn').forEach(b=>b.onclick=()=>openDay(S.week,+b.dataset.day,S.me.id,'one'));
+    document.querySelectorAll('#myBody [data-apd]').forEach(bt=>bt.onclick=()=>addPlanLine(+bt.dataset.apd, pl[bt.dataset.apd], viewMy));
     document.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>openEvidence(byId[b.dataset.ev], EV[b.dataset.ev], locked, v=>{ EV[b.dataset.ev]=v; const n=evCount(v);
       b.classList.toggle('on',!!n); b.textContent='📎 '+(n?`Evidence (${n})`:'Add evidence'); toast('Evidence added. Click Save draft to keep it.'); }));
     const daysOf = id => [...document.querySelectorAll(`input.dv[data-r="${id}"]`)].map(x=>x.value);
@@ -1319,7 +1341,19 @@ async function kpoExcel(){
   }catch(x){ err(x); }
 }
 async function setupKpis(){
-  const {data:lib,error}=await sb.from('kpi_library').select('*').eq('active',true).order('code'); if(error) throw error;
+  const tw=thisWeek();
+  const [{data:lib,error},{data:rules},{data:ppl}]=await Promise.all([
+    sb.from('kpi_library').select('*').eq('active',true).order('code'),
+    sb.from('assignment_rules').select('kpi_id,scope_type,scope_value,scope_function,excluded,effective_to').eq('active',true),
+    sb.from('profiles').select('id,full_name,designation,function').eq('active',true)]);
+  if(error) throw error;
+  const live=(rules||[]).filter(r=>!r.excluded&&(!r.effective_to||r.effective_to>=tw));
+  const desWith=new Set((ppl||[]).map(p=>(p.designation||'').toLowerCase())), pById=Object.fromEntries((ppl||[]).map(p=>[p.id,p]));
+  const asg={}; live.forEach(r=>{ const who=r.scope_type==='officer'?(pById[r.scope_value]?.full_name||'(inactive person)'):r.scope_value+(r.scope_function?' · '+r.scope_function:'');
+    const hasPeople=r.scope_type==='officer'?!!pById[r.scope_value]:r.scope_type==='designation'?desWith.has((r.scope_value||'').toLowerCase()):true;
+    (asg[r.kpi_id]=asg[r.kpi_id]||[]).push({who,hasPeople}); });
+  const stOf=k=>{ const a=asg[k.id]||[]; return !a.length?'none':a.some(x=>x.hasPeople)?'ok':'empty'; };
+  let show='all';
   const cats=[...new Set(lib.map(k=>k.category).filter(Boolean))].sort();
   const b=$('#sBody'); b.className='stack';
   let filter='';
@@ -1336,11 +1370,21 @@ async function setupKpis(){
     </div><datalist id="cats">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
     <div class="row"><button class="btn" type="submit">${k?.id?'Save KPO':'Add KPO'}</button>${k?.id?'<button class="btn line" type="button" id="kC">Cancel</button><button class="btn line" type="button" id="kOff">Remove from list</button>':''}</div>
     <p class="small muted" style="margin:0">Targets are set per designation in KPO assignment. Changes apply to weeks created after saving.</p></form>
-    <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">${lib.length} KPOs</h2><div class="row"><button class="btn line" type="button" id="kXls">Download Excel (KPO list, by designation, by person)</button><label class="f" for="kq" style="width:280px">Search<input id="kq" type="search" value="${esc(filter)}" placeholder="ID, name or category"></label></div></div>
-    <div class="scroll"><table><thead><tr><th>KPO</th><th>Category</th><th>Function</th><th>Frequency</th><th></th></tr></thead><tbody id="kRows"></tbody></table></div></div>`;
-    const rowsHtml=()=>{ const q=filter.toLowerCase(); $('#kRows').innerHTML=lib.filter(x=>!q||[x.code,x.name,x.category,x.function_area].join(' ').toLowerCase().includes(q)).map(x=>`<tr><td><div class="code">${esc(x.code||'')}</div>${esc(x.name)}</td><td class="small">${esc(x.category||'')}</td><td class="small">${esc(x.function_area||'')}</td><td class="small">${esc(x.frequency||'')}${x.measure==='percent'?' · %':''}</td><td><button class="btn line sm" data-e="${x.id}">Edit</button></td></tr>`).join('');
+    <div class="panel"><div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 style="margin:0">${lib.length} KPOs</h2><div class="chips" id="kSt">${[['all','All',lib.length],['ok','Assigned',lib.filter(k=>stOf(k)==='ok').length],['none','Not assigned to anyone',lib.filter(k=>stOf(k)==='none').length],['empty','Designation has no people',lib.filter(k=>stOf(k)==='empty').length]].map(([v,t,n])=>`<button type="button" class="chip ${show===v?'on':''}" data-ks="${v}">${t} (${n})</button>`).join('')}</div><div class="row"><button class="btn line" type="button" id="kXls">Download Excel (KPO list, by designation, by person)</button><label class="f" for="kq" style="width:280px">Search<input id="kq" type="search" value="${esc(filter)}" placeholder="ID, name or category"></label></div></div>
+    <div class="row" id="kBulk" hidden style="margin:6px 0;gap:10px"><span class="small" id="kBulkN"></span><button class="btn warn sm" type="button" id="kBulkB">Remove these from the list</button></div>
+    <div class="scroll"><table><thead><tr><th>KPO</th><th>Assigned to</th><th>Category</th><th>Frequency</th><th></th></tr></thead><tbody id="kRows"></tbody></table></div></div>`;
+    const shown=()=>{ const q=filter.toLowerCase(); return lib.filter(x=>(show==='all'||stOf(x)===show)&&(!q||[x.code,x.name,x.category,x.function_area,(asg[x.id]||[]).map(a=>a.who).join(' ')].join(' ').toLowerCase().includes(q))); };
+    const rowsHtml=()=>{ const L=shown(); $('#kRows').innerHTML=L.map(x=>{ const st=stOf(x), a=asg[x.id]||[];
+        return `<tr class="${st==='ok'?'':'kna'}"><td><div class="code">${esc(x.code||'')}</div>${esc(x.name)}</td><td class="small">${st==='none'?'<span class="pill s-returned">Not assigned</span>':a.map(v=>`<div>${esc(v.who)}${v.hasPeople?'':' <span class="pill s-draft">no people</span>'}</div>`).join('')}</td><td class="small">${esc(x.category||'')}</td><td class="small">${esc(x.frequency||'')}${x.measure==='percent'?' · %':''}</td><td><button class="btn line sm" data-e="${x.id}">Edit</button></td></tr>`; }).join('')||'<tr><td colspan="5" class="muted">No KPOs here.</td></tr>';
+      const bulk=$('#kBulk'); bulk.hidden=!(show==='none'||show==='empty')||!L.length; $('#kBulkN').textContent=`${L.length} KPO${L.length>1?'s':''} ${show==='none'?'not assigned to any designation':'assigned only to designations with no people'}.`;
       b.querySelectorAll('[data-e]').forEach(x=>x.onclick=()=>{render(lib.find(l=>l.id===x.dataset.e)); window.scrollTo(0,0);}); };
-    rowsHtml(); $('#kXls').onclick=kpoExcel; $('#kq').oninput=e=>{filter=e.target.value; rowsHtml();};
+    rowsHtml(); $('#kXls').onclick=kpoExcel;
+    b.querySelectorAll('[data-ks]').forEach(c=>c.onclick=()=>{ show=c.dataset.ks; b.querySelectorAll('[data-ks]').forEach(x=>x.classList.toggle('on',x===c)); rowsHtml(); });
+    $('#kBulkB').onclick=async()=>{ const L=shown(); if(!L.length) return; if(!confirmInline($('#kBulkB'),`Click again to remove ${L.length} KPOs`)) return;
+      for(let i=0;i<L.length;i+=100){ const ids=L.slice(i,i+100).map(x=>x.id);
+        const {error}=await sb.from('kpi_library').update({active:false}).in('id',ids); if(error) return err(error);
+        await sb.from('assignment_rules').update({active:false,effective_to:ymd(addD(parse(thisWeek()),-1))}).in('kpi_id',ids).eq('active',true); }
+      toast(`${L.length} KPOs removed from the list. Past weeks keep their data.`); viewSetup(); }; $('#kq').oninput=e=>{filter=e.target.value; rowsHtml();};
     $('#kC')&&($('#kC').onclick=()=>render());
     $('#kOff')&&($('#kOff').onclick=async()=>{ if(!confirmInline($('#kOff'),'Click again to remove')) return;
       const {error}=await sb.from('kpi_library').update({active:false}).eq('id',k.id); if(error) return err(error);
