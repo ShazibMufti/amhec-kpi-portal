@@ -151,6 +151,7 @@ table.mp td{vertical-align:top}
 .dhc{display:grid;gap:3px;justify-items:stretch} .addpl{border:1px dashed #a5b4fc;background:#f5f7ff;color:var(--brand);border-radius:6px;font-size:11px;font-weight:600;padding:2px 4px;cursor:pointer;white-space:nowrap} .addpl:hover{background:#e0e7ff}
 tr.kna td{background:#fffbeb}
 .ownadd{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)} .ownpill{background:#ede9fe;color:#6d28d9}
+.plchip{display:block;margin-top:3px;font-size:11px;font-weight:700;color:#6d28d9;background:#ede9fe;border-radius:6px;padding:1px 6px;text-align:center}
 .plkt{margin:-2px 40px 10px 0;padding:6px 10px;border-left:3px solid var(--brand2);background:#f5f7ff;border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.45;color:var(--ink)}
 .pl{display:grid;grid-template-columns:minmax(0,1fr) 96px 34px;gap:6px;align-items:center;margin-bottom:6px}
 .pl.note{grid-template-columns:minmax(0,1fr) 34px}
@@ -469,24 +470,43 @@ function openEvidence(r, cur, locked, onDone){
 }
 
 // ---------- My KPOs ----------
-function addPlanLine(day, cur, after){ // quick "+ Add plan" from My KPOs: own work with a target for one day of this week
-  const d=DAYN[day], date=addD(parse(S.week),day);
-  const md=document.createElement('div'); md.className='modal'; md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Add plan" style="max-width:520px">
-    <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Add plan – ${d} ${date.getDate()} ${MON[date.getMonth()]}</h2><div class="small muted">Work that is not in your KPO list. Its target counts in your score${day===6?' (Friday is off – not counted)':''}.</div></div><button class="btn line sm" type="button" id="apX">Close</button></div>
-    <label class="f" for="apL">Location / client<select id="apL">${locOpts(locList(),cur?.location||'','Choose location')}</select></label>
-    <label class="f" for="apT">What will you do<input id="apT" type="text" placeholder="e.g. Fire drill support at Old Yard camp"></label>
-    <label class="f" for="apN" style="max-width:160px">Target<input id="apN" type="number" min="0" step="any" value="1"></label>
-    ${planItems(cur).length?`<div class="small muted">Already planned for ${d}: ${planItems(cur).map(it=>esc(lineName(it))+(it.target!=null?' ('+num(it.target)+')':'')).join(' · ')}</div>`:''}
+function addPlanLine(day, pl, rows, after){ // "+ Add plan" in My KPOs: pick the day, then a KPO from your list or your own work, and set the target
+  const SEC=[['day','Daily'],['week','Weekly'],['event','Event-driven'],['month','Monthly'],['bimonth','Monthly'],['quarter','Quarterly'],['half','Quarterly'],['year','Yearly']];
+  const ks=(rows||[]).filter(r=>r.kpi_id&&r.measure!=='percent');
+  const groups=[...new Set(SEC.map(x=>x[1]))].map(g=>[g,ks.filter(r=>(SEC.find(x=>x[0]===r.period)||[,'Other'])[1]===g)]).filter(x=>x[1].length);
+  const md=document.createElement('div'); md.className='modal';
+  md.innerHTML=`<div class="panel stack" role="dialog" aria-modal="true" aria-label="Add plan" style="max-width:640px">
+    <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">Add plan</h2><div class="small muted">Week of ${esc(wkLabel(S.week))}. Planned targets count in your score.</div></div><button class="btn line sm" type="button" id="apX">Close</button></div>
+    <div class="grid3"><label class="f" for="apD">Day<select id="apD">${DAYN.slice(0,6).map((d,i)=>`<option value="${i}" ${i===day?'selected':''}>${d} ${addD(parse(S.week),i).getDate()} ${MON[addD(parse(S.week),i).getMonth()]}</option>`).join('')}</select></label>
+      <label class="f" for="apL" style="grid-column:span 2">Location / client<select id="apL"></select></label></div>
+    <div class="seg" role="group" aria-label="Plan type"><button type="button" class="on" data-pt="kpi">Choose a KPO</button><button type="button" data-pt="own">Write my own</button></div>
+    <div id="apKpo"><label class="f" for="apK">KPO<select id="apK"><option value="">Choose KPO</option>${groups.map(([g,L])=>`<optgroup label="${g} KPO Tasks">${L.map(r=>`<option value="${r.kpi_id}">${esc(r.kpi_code||'')} – ${esc((r.kpi_name||'').slice(0,110))}</option>`).join('')}</optgroup>`).join('')}</select></label><div id="apKT"></div></div>
+    <div id="apOwn" hidden><label class="f" for="apT">What will you do<input id="apT" type="text" placeholder="e.g. Support fire drill at Old Yard camp"></label></div>
+    <label class="f" for="apN" style="max-width:160px">Target for this day<input id="apN" type="number" min="0" step="any" value="1"></label>
+    <div id="apHave" class="small muted"></div>
     <div class="row"><button class="btn" type="button" id="apS">Add to my plan</button></div></div>`;
-  document.body.appendChild(md); md.querySelector('#apX').onclick=()=>md.remove(); md.querySelector('#apT').focus();
-  md.querySelector('#apS').onclick=async e=>{ const tx=md.querySelector('#apT').value.trim(), tg=md.querySelector('#apN').value;
-    if(!tx) return toast('Write what you will do.'); e.target.disabled=true;
-    const items=[...planItems(cur).filter(it=>it.t!=='note'), {t:'text',text:tx,target:tg===''?null:Number(tg),done:null}];
-    const row={officer_id:S.me.id, week_start:S.week, day, location:md.querySelector('#apL').value||cur?.location||null, items,
+  document.body.appendChild(md);
+  let type='kpi'; const q=x=>md.querySelector(x);
+  const sync=()=>{ const d=+q('#apD').value, cur=pl[d];
+    q('#apL').innerHTML=locOpts(locList(),cur?.location||'','Choose location');
+    const its=planItems(cur).filter(it=>it.t!=='note');
+    q('#apHave').innerHTML=its.length?`Already planned for ${DAYN[d]}: ${its.map(it=>esc(lineName(it))+(it.target!=null?' ('+num(it.target)+')':'')).join(' · ')}`:''; };
+  q('#apD').onchange=sync; sync();
+  md.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{ type=b.dataset.pt; md.querySelectorAll('[data-pt]').forEach(x=>x.classList.toggle('on',x===b)); q('#apKpo').hidden=type!=='kpi'; q('#apOwn').hidden=type!=='own'; (type==='kpi'?q('#apK'):q('#apT')).focus(); });
+  q('#apK').onchange=()=>{ const r=ks.find(x=>x.kpi_id===q('#apK').value); const tt=r?kTarget(r):'';
+    q('#apKT').innerHTML=r?`<div class="plkt" style="margin:6px 0 0"><b>KPI target:</b> ${esc(tt||'–')}<div class="sub" style="margin-top:4px">KPO target: ${esc(tgtText(r))}</div></div>`:'';
+    if(r&&r.period==='day'&&r.period_target!=null) q('#apN').value=num(r.period_target); };
+  q('#apX').onclick=()=>md.remove();
+  q('#apS').onclick=async e=>{ const d=+q('#apD').value, cur=pl[d], tg=q('#apN').value; let item;
+    if(type==='kpi'){ const r=ks.find(x=>x.kpi_id===q('#apK').value); if(!r) return toast('Choose a KPO.'); item={t:'kpi',kpi_id:r.kpi_id,code:r.kpi_code,name:r.kpi_name,target:tg===''?null:Number(tg),done:null}; }
+    else { const tx=q('#apT').value.trim(); if(!tx) return toast('Write what you will do.'); item={t:'text',text:tx,target:tg===''?null:Number(tg),done:null}; }
+    e.target.disabled=true;
+    const items=[...planItems(cur).filter(it=>it.t!=='note'), item];
+    const row={officer_id:S.me.id, week_start:S.week, day:d, location:q('#apL').value||cur?.location||null, items,
       activity:items.map(it=>lineName(it)+(it.target!=null?` (target ${it.target})`:'')).join('\n'), updated_at:new Date().toISOString()};
     const {error}=await sb.from('week_plans').upsert([row],{onConflict:'officer_id,week_start,day'});
     if(error){ e.target.disabled=false; return err(error); }
-    md.remove(); toast(`Added to your plan for ${d}. Enter what you did under My plan this week.`); after&&after(); };
+    md.remove(); toast(`Added to your plan for ${DAYN[d]}.`); after&&after(); };
 }
 function addOwnLine(per, title){ // "+ Add plan" inside a My KPOs section: own work line with a target, stored as a row of this week
   const pname={day:'per day (Sat–Thu)',week:'per week',event:'each time it happens',month:'per month',quarter:'per quarter'}[per]||'';
@@ -528,7 +548,7 @@ async function viewMy(){
     const todayIdx=DAYN.findIndex((d,i)=>ymd(addD(parse(S.week),i))===ymd(new Date()));
     const dayVals = r => Array.isArray(r.daily) ? DAYN.map((d,i)=>r.daily[i]??'') : DAYN.map(()=>'');
     const isDayRow = r => r.measure==='percent' || r.period_target==null || ['day','week','event'].includes(r.period);
-    const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<div class="dhc"><button type="button" class="dbtn ${i===todayIdx?'td':''} ${i===6?'off':''}" data-day="${i}" title="${i===6?'Friday is off – not counted in the score':'Open '+d}">${d} ${addD(parse(S.week),i).getDate()}${i===6?' · off':''}</button></div>`).join('')}<span class="tot">Week</span></div>`;
+    const dayHead = () => `<div class="dg dh">${DAYN.map((d,i)=>`<div class="dhc"><button type="button" class="dbtn ${i===todayIdx?'td':''} ${i===6?'off':''}" data-day="${i}" title="${i===6?'Friday is off – not counted in the score':'Open '+d}">${d} ${addD(parse(S.week),i).getDate()}${i===6?' · off':''}</button>${locked||i===6?'':`<button type="button" class="addpl" data-apd="${i}" title="Plan a KPO or your own work for ${d}">+ Add plan</button>`}</div>`).join('')}<span class="tot">Week</span></div>`;
     const EV=Object.fromEntries(rows.map(r=>[r.id,evOf(r)]));
     const evBtn = r => { const n=evCount(EV[r.id]); return `<button type="button" class="evb ${n?'on':''}" data-ev="${r.id}" title="Evidence (optional)">🔗 ${n?`Evidence (${n})`:'Add evidence'}</button>`; };
     const isOwn = r => !r.kpi_id && r.kpi_code==='PLAN';
@@ -538,7 +558,7 @@ async function viewMy(){
     const dayRow = r => { const dv=dayVals(r), pc=r.measure==='percent';
       return `<tr><td class="kpo">${kpiCell(r)}<div class="sub"><span class="tg">Target: ${esc(tgtText(r))}</span></div>${evBtn(r)}</td>${ktCell(r)}
         <td><div class="dg">${DAYN.map((d,i)=>{ const ref=refOf(r,i); return `<div class="dc ${i===todayIdx?'tdc':''}"><input type="number" min="0" ${pc?'max="100"':''} step="any" class="dv ${i===todayIdx?'td':''}" data-r="${r.id}" data-i="${i}" value="${esc(dv[i]??'')}" placeholder="${pc?'%':'0'}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d}">
-            <select class="lc ${ref?'set':''}" data-r="${r.id}" data-i="${i}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d} location">${locOpts(locList(),ref)}</select></div>`; }).join('')}
+            <select class="lc ${ref?'set':''}" data-r="${r.id}" data-i="${i}" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} ${d} location">${locOpts(locList(),ref)}</select>${PLK[r.kpi_id]&&PLK[r.kpi_id][i]!=null?`<span class="plchip" title="Your plan for ${d}">Plan ${num(PLK[r.kpi_id][i])}</span>`:''}</div>`; }).join('')}
           <b class="tot" id="tot_${r.id}">${pc?(r.actual==null?'–':num(r.actual)+'%'):num(Number(r.actual)||0)}</b></div></td></tr>`; };
     // period sections: columns = sub-periods; the current one holds this week's input
     const weeks=weeksOfMonth(Y,M), qm=[0,1,2].map(j=>Math.floor(M/3)*3+j);
@@ -546,15 +566,16 @@ async function viewMy(){
                    qt: qm.map(mm=>({key:mm, label:MON[mm], cur:mm===M, fut:mm>M})),
                    yr: MON.map((x,mm)=>({key:mm, label:x, cur:mm===M, fut:mm>M})) };
     const pHead = g => `<div class="pgg" style="--n:${cols[g].length}">${cols[g].map(c=>`<span class="${c.cur?'td':''}" title="${esc(c.title||c.label)}">${esc(c.label)}</span>`).join('')}${g==='mo'?'':'<span class="td">This week</span>'}<span class="tot">Total</span></div>`;
-    const pInput = r => `<div class="dc"><input type="number" min="0" step="any" class="wv td" data-r="${r.id}" value="${hasEntry(r)?esc(r.actual??''):''}" placeholder="0" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} this week">
+    const plSum = r => { const o=PLK[r.kpi_id]; return o?Object.values(o).reduce((a,b)=>a+(Number(b)||0),0):null; };
+    const pInput = r => `<div class="dc">${plSum(r)!=null?`<span class="plchip">Plan ${num(plSum(r))} this week</span>`:''}<input type="number" min="0" step="any" class="wv td" data-r="${r.id}" value="${hasEntry(r)?esc(r.actual??''):''}" placeholder="0" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} this week">
         <select class="lc ${refOf(r,0)?'set':''}" data-r="${r.id}" data-i="0" ${locked?'disabled':''} aria-label="${esc(r.kpi_code||'')} location">${locOpts(locList(),refOf(r,0))}</select></div>`;
     const pRow = (g,r) => { const pv=before(r);
       const cells=cols[g].map(c=>{ if(g==='mo') return c.cur?pInput(r):`<span class="pv">${c.fut?'·':num(wkSum(r,c.key))}</span>`;
           const v=monSum(r,c.key); return `<span class="pv ${c.cur?'cm':''}" ${c.cur?`id="cm_${r.id}" data-base="${v}"`:''}>${c.fut?'·':num(v+(c.cur?(Number(r.actual)||0):0))}</span>`; }).join('');
       return `<tr><td class="kpo">${kpiCell(r)}<div class="sub"><span class="tg">Target: ${esc(tgtText(r))}</span></div>${evBtn(r)}</td>${ktCell(r)}
         <td><div class="pgg" style="--n:${cols[g].length}">${cells}${g==='mo'?'':pInput(r)}<b class="tot" id="pt_${r.id}" data-prev="${pv}">${num(pv+(Number(r.actual)||0))}${r.period_target!=null?`<small>of ${num(r.period_target)}</small>`:''}</b></div></td></tr>`; };
-    const grp = (title,list,head,rowFn,open,note,per) => (list.length||(per&&!locked))?`<details class="grp" ${open&&list.length?'open':''}><summary><span>${title} <span class="muted small">(${list.length})</span></span></summary><div class="in scroll">${note?`<p class="small muted" style="margin:0 0 6px">${note}</p>`:''}${list.length?`<table class="kt">
-      <thead><tr><th>KPO</th><th>KPI Target</th><th>${head}</th></tr></thead><tbody>${list.map(rowFn).join('')}</tbody></table>`:'<p class="small muted" style="margin:4px 0">No KPOs in this section yet.</p>'}${per&&!locked?`<div class="ownadd"><button type="button" class="btn line sm" data-own="${per}" data-ttl="${esc(title)}">+ Add plan</button><span class="small muted">Your own work for this week that is not in the KPO list. It works like a KPO and counts in your score.</span></div>`:''}</div></details>`:'';
+    const grp = (title,list,head,rowFn,open,note,per) => list.length?`<details class="grp" ${open&&list.length?'open':''}><summary><span>${title} <span class="muted small">(${list.length})</span></span></summary><div class="in scroll">${note?`<p class="small muted" style="margin:0 0 6px">${note}</p>`:''}${list.length?`<table class="kt">
+      <thead><tr><th>KPO</th><th>KPI Target</th><th>${head}</th></tr></thead><tbody>${list.map(rowFn).join('')}</tbody></table>`:'<p class="small muted" style="margin:4px 0">No KPOs in this section yet.</p>'}</div></details>`:'';
     const norm = rows.filter(r=>r.measure!=='percent'&&r.period_target!=null);
     const G = { dy:norm.filter(r=>r.period==='day'), ev:norm.filter(r=>r.period==='event'), wk:norm.filter(r=>r.period==='week'),
       mo:norm.filter(r=>r.period==='month'||r.period==='bimonth'), qt:norm.filter(r=>r.period==='quarter'||r.period==='half'), yr:norm.filter(r=>r.period==='year'),
@@ -562,8 +583,9 @@ async function viewMy(){
     // plan this week
     const byId=Object.fromEntries(rows.map(r=>[r.id,r])); const byKpi=Object.fromEntries(rows.map(r=>[r.kpi_id,r]));
     const pl=Object.fromEntries((plans||[]).map(x=>[x.day,x]));
+    const PLK={}; Object.values(pl).forEach(x=>planItems(x).forEach(it=>{ if(it.t==='kpi'&&it.kpi_id){ (PLK[it.kpi_id]=PLK[it.kpi_id]||{})[x.day]=(PLK[it.kpi_id][x.day]||0)+(Number(it.target)||0); } }));
     const planRows=[]; DAYN.forEach((d,i)=>planItems(pl[i]).forEach((it,j)=>planRows.push({i,j,it,loc:pl[i]?.location||''})));
-    const planHtml = !planRows.length ? `<details class="grp" open><summary><span>My plan this week <span class="muted small">(0)</span></span></summary><div class="in"><div class="planempty"><div><b>No plan for this week yet.</b> Plan where you will be each day and which KPOs you will do. Planned targets (Sat–Thu) count in your score.</div><button type="button" class="btn sm" id="goPlan">Make my plan for this week</button></div></div></details>` : `<details class="grp" open><summary><span>My plan this week <span class="muted small">(${planRows.length})</span></span></summary><div class="in scroll">
+    const planHtml = !planRows.length ? `<details class="grp" open><summary><span>My plan this week <span class="muted small">(0)</span></span></summary><div class="in"><div class="planempty"><div><b>No plan for this week yet.</b> Plan where you will be each day and which KPOs you will do. Planned targets (Sat–Thu) count in your score.</div><div class="row" style="gap:6px">${locked?'':`<button type="button" class="btn sm" data-apd="${todayIdx>=0&&todayIdx<6?todayIdx:0}">+ Add plan</button>`}<button type="button" class="btn line sm" id="goPlan">Open My plan page</button></div></div></div></details>` : `<details class="grp" open><summary><span>My plan this week <span class="muted small">(${planRows.length})</span></span></summary><div class="in scroll">
       <p class="small muted" style="margin:0 0 6px">From My plan. Enter how much you did against each line. KPO lines are the same as in the KPO tables below, so a number entered here also fills that KPO's day (and the other way round). These targets count in your score.</p>
       <table class="plt"><thead><tr><th>Day</th><th>Location</th><th>Plan</th><th class="n">Target</th><th class="n">Done</th></tr></thead><tbody>
       ${planRows.map(p=>{ const r=p.it.t==='kpi'?byKpi[p.it.kpi_id]:null; let inp;
@@ -609,7 +631,7 @@ async function viewMy(){
     document.querySelectorAll('tr[data-w]').forEach(tr=>tr.onclick=e=>{ if(e.target.closest('[data-tl]')) return; S.week=tr.dataset.w; viewMy();});
     document.querySelectorAll('[data-tl]').forEach(b=>b.onclick=()=>{ const r=$('#tl_'+b.dataset.tl); r.hidden=!r.hidden; });
     document.querySelectorAll('#myBody .dbtn').forEach(b=>b.onclick=()=>openDay(S.week,+b.dataset.day,S.me.id,'one'));
-    document.querySelectorAll('#myBody [data-own]').forEach(bt=>bt.onclick=()=>addOwnLine(bt.dataset.own, bt.dataset.ttl));
+    document.querySelectorAll('#myBody [data-apd]').forEach(bt=>bt.onclick=()=>addPlanLine(+bt.dataset.apd, pl, rows, viewMy));
     document.querySelectorAll('#myBody [data-rmown]').forEach(bt=>bt.onclick=async()=>{ if(!confirmInline(bt,'Remove?')) return;
       const {error}=await sb.rpc('remove_own_line',{p_id:bt.dataset.rmown}); if(error) return err(error); toast('Plan line removed.'); viewMy(); });
     document.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>openEvidence(byId[b.dataset.ev], EV[b.dataset.ev], locked, v=>{ EV[b.dataset.ev]=v; const n=evCount(v);
