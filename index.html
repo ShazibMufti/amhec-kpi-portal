@@ -288,7 +288,18 @@ function ach(dir,t,a,measure){ if(t==null) return null; a=Number(a)||0; t=Number
 function rating(s){ if(s==null||isNaN(s)) return ['No data','r-na']; if(s>=.9) return ['Excellent','r-ex']; if(s>=.75) return ['Good','r-gd']; if(s>=.6) return ['Needs improvement','r-ni']; return ['Poor','r-po']; }
 const col = s => s==null?'var(--line)': s>=.9?'var(--good)': s>=.75?'var(--ok)': s>=.6?'var(--warn)':'var(--bad)';
 const pct = s => s==null||isNaN(s) ? '–' : Math.round(s*100)+'%';
-const meter = s => `<div class="meter"><i><b style="width:${Math.min(100,(s||0)/1.2*100)}%;background:${col(s)}"></b></i><span>${pct(s)}</span></div>`;
+const meter = s => `<div class="meter"><i><b style="width:${Math.min(100,(s||0)*100)}%;background:${col(s)}"></b></i><span>${pct(s==null?s:Math.min(1,s))}</span></div>`;
+// KPO achievement for a period: monthly/event KPOs are judged against their own period target (e.g. 1 per month),
+// not against a weekly fraction; achievement is capped at 100% so extra work never shows above 100%.
+const PERU={day:['week',1],week:['week',1],month:['month',52/12],event:['month',52/12],bimonth:['2 months',52/6],quarter:['quarter',13],half:['half-year',26],year:['year',52]};
+function kv(r){
+  if(r.measure==='percent') return {a:ach(r.direction,100,r.avg_actual,'percent'), tgt:100, per:'100%', done:num(r.avg_actual)+'%', line:'Average '+num(r.avg_actual)+'% · Target 100%'};
+  if(r.sum_target==null) return {a:null, tgt:null, per:'–', done:num(r.sum_actual), line:'Record only'};
+  const [u,wp]=PERU[r.period]||['week',1], w=Math.max(1,Number(r.weeks)||1), per=Math.round(Number(r.sum_target)/w*wp*100)/100, n=Math.max(1,Math.round(w/wp)), tgt=per*n, d=Number(r.sum_actual)||0;
+  const a=Math.min(1,ach(r.direction,tgt,d));
+  const ex=r.direction!=='lower'&&d>tgt?'<div class="sub" style="color:var(--good);white-space:nowrap">+'+num(d-tgt)+' extra</div>':'';
+  return {a, tgt, n, u, ex, per:num(per)+' per '+u+(n>1?' × '+n:''), done:num(d), line:'Done '+num(d)+' · Target '+num(per)+' per '+u+(n>1?' × '+n:'')+(r.direction!=='lower'&&d>tgt?' <span class="pill r-ex" style="font-size:11px">+'+num(d-tgt)+' extra</span>':'')};
+}
 const rpill = s => { const [t,c]=rating(s); return `<span class="pill ${c}">${t}</span>`; };
 const spill = st => `<span class="pill s-${esc(st)}">${({draft:'Not submitted',submitted:'Waiting approval',approved:'Approved',returned:'Returned'})[st]||esc(st)}</span>`;
 const DAYN=['Sat','Sun','Mon','Tue','Wed','Thu','Fri'];
@@ -693,11 +704,11 @@ async function myPerformance(){
     const wk=[]; for(let i=11;i>=0;i--) wk.push(ymd(addD(parse(thisWeek()),-7*i)));
     const tv=wk.map(k=>{ const s=(tr.data||[]).find(t=>t.week_start===k); return s?.score!=null?Number(s.score):null; });
     const kl=(kr.data||[]).filter(r=>r.sum_target!=null&&(RANK[r.period]<=2||r.measure==='percent'))
-      .map(r=>({...r,a:r.measure==='percent'?ach(r.direction,100,r.avg_actual,'percent'):ach(r.direction,r.sum_target,r.sum_actual)})).sort((a,b)=>a.a-b.a);
+      .map(r=>{ const v=kv(r); return {...r,a:v.a,v}; }).sort((a,b)=>a.a-b.a);
     box.innerHTML=`<details class="grp perf" open><summary><span>My performance <span class="muted small">(approved and submitted weeks)</span></span></summary><div class="in">
       <div class="tiles">${[['This week',sc(w)],[MON[mo]+' '+y,sc(mth)],[`Q${q+1} ${y}`,sc(qt)],['Year '+y,sc(yr)]].map(([k,v])=>`<div class="tile"><span class="k">${esc(k)}</span><span class="v" style="color:${col(v)}">${pct(v)}</span><span class="s">${rpill(v)}</span></div>`).join('')}</div>
       <div class="cols" style="margin-top:12px"><div class="panel chart"><h2>My weekly score, last 12 weeks</h2>${bars(tv, wk.map(shortD))}</div>
-      <div class="panel"><h2>My KPOs, ${MON[mo]}</h2>${kl.length?`<table><tbody>${kl.slice(0,8).map(k=>`<tr><td><div class="code">${esc(k.kpi_code||'')}</div>${esc(k.kpi_name)}<div class="sub">${k.measure==='percent'?'average %':num(k.sum_actual)+' of '+num(k.sum_target)}</div></td><td style="width:42%">${meter(k.a)}</td></tr>`).join('')}</tbody></table><p class="small muted">Lowest first. ${kl.length} KPOs this month.</p>`:'<p class="muted small">Your submitted weeks this month will show here.</p>'}</div></div>
+      <div class="panel"><h2>My KPOs, ${MON[mo]}</h2>${kl.length?`<table><tbody>${kl.slice(0,8).map(k=>`<tr><td><div class="code">${esc(k.kpi_code||'')}</div>${esc(k.kpi_name)}<div class="sub">${k.v.line}</div></td><td style="width:42%">${meter(k.a)}</td></tr>`).join('')}</tbody></table><p class="small muted">Lowest first. ${kl.length} KPOs this month.</p>`:'<p class="muted small">Your submitted weeks this month will show here.</p>'}</div></div>
     </div></details>`;
   }catch(x){ console.error(x); }
 }
@@ -733,7 +744,7 @@ async function viewMyDash(){
       fetchAll(()=>sb.from('week_submissions').select('week_start,score,status').eq('officer_id',S.me.id).gte('week_start',from12).neq('status','draft'))]);
     for(const r of [sc,kr,ms]) if(r.error) throw r.error;
     const score=sc.data?.[0]?.score!=null?Number(sc.data[0].score):null;
-    const kl=(kr.data||[]).map(r=>({...r, a:r.measure==='percent'?ach(r.direction,100,r.avg_actual,'percent'):(r.sum_target==null?null:ach(r.direction,r.sum_target,r.sum_actual)), counted:r.sum_target!=null&&(RANK[r.period]<=maxrank||r.measure==='percent')}))
+    const kl=(kr.data||[]).map(r=>({...r, v:kv(r), a:kv(r).a, counted:r.sum_target!=null&&(RANK[r.period]<=maxrank||r.measure==='percent')}))
       .sort((a,b)=>(a.counted?a.a:9)-(b.counted?b.a:9));
     const counted=kl.filter(k=>k.counted), met=counted.filter(k=>k.a>=1).length;
     const done=subs.filter(s=>s.status!=='draft'), due=MD.type==='week'?(parse(MD.week)<=new Date()?1:0):weeksIn(from,to);
@@ -750,7 +761,7 @@ async function viewMyDash(){
         <div class="panel chart"><h2>My score by month, ${MD.year}</h2>${bars(mon, MON)}</div></div>
       <div class="panel"><h2>My KPOs, ${esc(label)}</h2>${kl.length?`<div class="scroll"><table><thead><tr><th>KPO</th><th>Frequency</th><th class="n">Target</th><th class="n">Done</th><th>Achievement</th></tr></thead><tbody>
         ${kl.map(r=>`<tr><td><div class="code">${esc(r.kpi_code||'')}</div>${esc(r.kpi_name)}</td><td class="small">${esc(r.frequency||'')}</td>
-          <td class="n">${r.measure==='percent'?'100%':(r.sum_target==null?'–':num(r.sum_target))}</td><td class="n">${r.measure==='percent'?num(r.avg_actual)+'%':num(r.sum_actual)}</td>
+          <td class="n">${r.v.per}</td><td class="n"><b>${r.v.done}</b>${r.v.ex||''}</td>
           <td>${r.counted?meter(r.a):`<span class="sub">${r.sum_target==null?'Record only':'Counts in a longer period'}</span>`}</td></tr>`).join('')}</tbody></table></div><p class="small muted">Lowest first, so you can see where to focus.</p>`
         :'<p class="muted small">No submitted weeks in this period yet.</p>'}</div>
       <div class="panel"><h2>My weeks in this period</h2>${subs.length?`<table><tbody>${subs.map(s=>`<tr class="click" data-w="${s.week_start}"><td>${esc(wkLabel(s.week_start))}</td><td>${spill(s.status)}</td><td class="n"><b>${pct(s.score)}</b></td></tr>`).join('')}</tbody></table><p class="small muted">Click a week to open it in My KPOs.</p>`:'<p class="muted small">No weeks yet.</p>'}</div>`;
@@ -864,8 +875,8 @@ async function viewDashboard(){
     const pending=S2.filter(s=>s.status==='submitted').length;
     const byK={}; (kr.data||[]).filter(r=>ids.has(r.officer_id)&&r.sum_target!=null&&(RANK[r.period]<=maxrank||r.measure==='percent')).forEach(r=>{
       const k=r.kpi_code+'|'+r.kpi_name; const o=byK[k]||(byK[k]={code:r.kpi_code,n:r.kpi_name,a:0,t:0,pa:[],m:r.measure,dir:r.direction});
-      o.a+=Number(r.sum_actual)||0; o.t+=Number(r.sum_target)||0; if(r.avg_actual!=null) o.pa.push(Number(r.avg_actual)); });
-    const kList=Object.values(byK).map(o=>({...o,ach:o.m==='percent'?ach(o.dir,100,o.pa.length?o.pa.reduce((a,b)=>a+b,0)/o.pa.length:0,'percent'):ach(o.dir,o.t,o.a)})).sort((a,b)=>a.ach-b.ach);
+      const v=kv(r); o.a+=Number(r.sum_actual)||0; o.t+=v.tgt||0; o.cs=(o.cs||0)+(v.a||0); o.cn=(o.cn||0)+1; if(r.avg_actual!=null) o.pa.push(Number(r.avg_actual)); });
+    const kList=Object.values(byK).map(o=>({...o,ach:o.m==='percent'?ach(o.dir,100,o.pa.length?o.pa.reduce((a,b)=>a+b,0)/o.pa.length:0,'percent'):(o.cs/o.cn)})).sort((a,b)=>a.ach-b.ach);
     const mon=MON.map((x,i)=>{ const v=(ms.data||[]).filter(r=>ids.has(r.officer_id)&&r.month===i+1&&r.score!=null); return v.length? v.reduce((a,r)=>a+Number(r.score),0)/v.length : null; });
     const b=$('#dBody'); b.className='stack';
     if(!team.length){ b.className='empty'; b.innerHTML='<b>No officers in your team yet</b>Officers appear here once QHSE sets you as their supervisor.'; return; }
@@ -881,7 +892,7 @@ async function viewDashboard(){
       </tbody></table></div><p class="small muted" id="dNo" hidden>No officer matches your search.</p><p class="small muted">Select an officer for the full review.</p></div>
       <div class="stack">
         <div class="panel chart"><h2>Team score by month, ${D.year}</h2>${bars(mon, MON)}</div>
-        <div class="panel"><h2>Weakest KPOs, ${esc(label)}</h2>${kList.length?`<table><tbody>${kList.slice(0,12).map(k=>`<tr><td><div class="code">${esc(k.code||'')}</div>${esc(k.n)}<div class="sub">${k.m==='percent'?'average %':num(k.a)+' of '+num(k.t)}</div></td><td style="width:42%">${meter(k.ach)}</td></tr>`).join('')}</tbody></table><p class="small muted">${kList.length} KPOs in this period; the 12 lowest are shown. Export to Excel for all.</p>`:'<p class="muted small">No submitted weeks in this period.</p>'}</div>
+        <div class="panel"><h2>Weakest KPOs, ${esc(label)}</h2>${kList.length?`<table><tbody>${kList.slice(0,12).map(k=>`<tr><td><div class="code">${esc(k.code||'')}</div>${esc(k.n)}<div class="sub">${k.m==='percent'?'average %':'Done '+num(k.a)+' · Target '+num(k.t)}</div></td><td style="width:42%">${meter(k.ach)}</td></tr>`).join('')}</tbody></table><p class="small muted">${kList.length} KPOs in this period; the 12 lowest are shown. Export to Excel for all.</p>`:'<p class="muted small">No submitted weeks in this period.</p>'}</div>
       </div></div>`;
     const nameOf=Object.fromEntries(team.map(p=>[p.id,p.full_name]));
     const EVR=(evr||[]).filter(r=>ids.has(r.officer_id)).map(r=>({...r,e:evOf(r)})).filter(r=>r.e.note||r.e.links.length).sort((a,b)=>b.week_start.localeCompare(a.week_start)||String(nameOf[a.officer_id]).localeCompare(nameOf[b.officer_id]));
@@ -921,7 +932,7 @@ async function officerDetail(p){
     fetchAll(()=>sb.from('week_submissions').select('week_start,score,status').eq('officer_id',p.id).gte('week_start',last12F).neq('status','draft'))]);
   if(sc.error||kr.error) return err(sc.error||kr.error);
   const avg=sc.data?.[0]?.score!=null?Number(sc.data[0].score):null;
-  const kl=(kr.data||[]).map(r=>({...r, a: r.measure==='percent'?ach(r.direction,100,r.avg_actual,'percent'):(r.sum_target==null?null:ach(r.direction,r.sum_target,r.sum_actual)), counted: r.sum_target!=null&&(RANK[r.period]<=maxrank||r.measure==='percent')}))
+  const kl=(kr.data||[]).map(r=>({...r, v:kv(r), a:kv(r).a, counted: r.sum_target!=null&&(RANK[r.period]<=maxrank||r.measure==='percent')}))
     .sort((a,b)=>(a.kpi_code||'').localeCompare(b.kpi_code||''));
   const wk=[]; for(let i=11;i>=0;i--) wk.push(ymd(addD(parse(thisWeek()),-7*i)));
   const tv=wk.map(k=>{const s=trend.find(t=>t.week_start===k); return s?.score!=null?Number(s.score):null;});
@@ -930,9 +941,9 @@ async function officerDetail(p){
     <div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${esc(p.full_name)}</h2><div class="muted">${p.employee_no?'CAM '+esc(p.employee_no)+' · ':''}${esc(p.designation||'')} · ${esc(label)}</div></div><button class="btn line sm" id="oClose">Close</button></div>
     <div class="tiles"><div class="tile"><span class="k">Score</span><span class="v" style="color:${col(avg)}">${pct(avg)}</span><span class="s">${rpill(avg)}</span></div>
       <div class="tile"><span class="k">Weeks submitted</span><span class="v">${done.length}</span><span class="s">${subs.filter(s=>s.status==='approved').length} approved</span></div></div>
-    <div class="scroll"><table><thead><tr><th>KPO</th><th>Frequency</th><th class="n">Target in period</th><th class="n">Done</th><th>Achievement</th></tr></thead><tbody>
+    <div class="scroll"><table><thead><tr><th>KPO</th><th>Frequency</th><th class="n">Target</th><th class="n">Done</th><th>Achievement</th></tr></thead><tbody>
       ${kl.map(r=>`<tr><td><div class="code">${esc(r.kpi_code||'')}</div>${esc(r.kpi_name)}</td><td class="small">${esc(r.frequency||'')}</td>
-        <td class="n">${r.measure==='percent'?'100%':(r.sum_target==null?'–':num(r.sum_target))}</td><td class="n">${r.measure==='percent'?num(r.avg_actual)+'%':num(r.sum_actual)}</td>
+        <td class="n">${r.v.per}</td><td class="n"><b>${r.v.done}</b>${r.v.ex||''}</td>
         <td>${r.counted?meter(r.a):`<span class="sub">${r.sum_target==null?'Record only':'Not due in this view'}</span>`}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">No submitted weeks in this period.</td></tr>'}
     </tbody></table></div>
     <div class="chart"><h2>Weekly score, last 12 weeks</h2>${bars(tv, wk.map(shortD))}</div>
